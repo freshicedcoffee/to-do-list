@@ -47,7 +47,7 @@ function TodoApp() {
 
   return React.createElement("div",{className:"min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 md:p-8"},
     React.createElement("div",{className:"max-w-4xl mx-auto bg-white rounded-2xl shadow-xl p-6 md:p-8"},
-      React.createElement("h1",{className:"text-4xl font-bold text-gray-800 mb-2"},"Get S**t Done!"),
+      React.createElement("h1",{className:"text-4xl font-bold text-gray-800 mb-2"},"Get Sh*t Done!"),
       React.createElement("div",{className:"flex gap-4 text-sm text-gray-500 mb-6"},
         React.createElement("span",null,`${activeTodos} active`),
         React.createElement("span",null,"•"),
