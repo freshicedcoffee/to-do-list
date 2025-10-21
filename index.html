@@ -191,7 +191,7 @@
     const [showCategoryModal, setShowCategoryModal] = useState(false);
     const [newCategory, setNewCategory] = useState('');
 
-    const defaultCategories = ['Work','Personal','Shopping'];
+    const defaultCategories = ['Work','Personal','Shopping','Health','Other'];
     const allCategories = [...defaultCategories, ...customCategories];
     const priorities = ['low','medium','high'];
 
@@ -259,8 +259,8 @@
     // add / edit / delete functions -> write to Firestore
     const addTodo = async () => {
       if(!input.trim()) return;
-      // Find the highest sort order and add 1
-      const maxSort = todos.length > 0 ? Math.max(...todos.map(t => t.sortOrder || 0)) : 0;
+      // Find the lowest sort order and subtract 1 to add at top
+      const minSort = todos.length > 0 ? Math.min(...todos.map(t => t.sortOrder || 0)) : 0;
       const data = {
         text: input,
         completed: false,
@@ -268,7 +268,7 @@
         dueDate: dueDate || null,
         priority,
         priorityIndex: priorityIndex(priority),
-        sortOrder: maxSort + 1,
+        sortOrder: minSort - 1,
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       };
       try {
