@@ -21,6 +21,19 @@
     body { margin: 0; font-family: system-ui, -apple-system, sans-serif; } 
     .dragging { opacity: 0.5; }
     .drag-over { border-top: 3px solid #6366f1; }
+    @keyframes slide-up {
+      from {
+        transform: translateX(-50%) translateY(100px);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(-50%) translateY(0);
+        opacity: 1;
+      }
+    }
+    .animate-slide-up {
+      animation: slide-up 0.3s ease-out;
+    }
   </style>
 </head>
 <body>
@@ -190,8 +203,11 @@
     const [customCategories, setCustomCategories] = useState([]);
     const [showCategoryModal, setShowCategoryModal] = useState(false);
     const [newCategory, setNewCategory] = useState('');
+    const [deletedTask, setDeletedTask] = useState(null);
+    const [showToast, setShowToast] = useState(false);
+    const [undoTimeout, setUndoTimeout] = useState(null);
 
-    const defaultCategories = ['Work','Personal','Shopping','Health','Other'];
+    const defaultCategories = ['Work','Personal','Shopping'];
     const allCategories = [...defaultCategories, ...customCategories];
     const priorities = ['low','medium','high'];
 
@@ -294,8 +310,45 @@
       } catch(err){ console.error(err); }
     };
     const deleteTodo = async (id) => {
-      try { await tasksRef().doc(id).delete(); } catch(err){ console.error(err); }
+      // Store the task for undo
+      const taskToDelete = todos.find(t => t.id === id);
+      if (!taskToDelete) return;
+
+      // Clear any existing timeout
+      if (undoTimeout) {
+        clearTimeout(undoTimeout);
+      }
+
+      // Immediately hide the task from view
+      setDeletedTask(taskToDelete);
+      setShowToast(true);
+
+      // Set timeout to actually delete after 5 seconds
+      const timeout = setTimeout(async () => {
+        try {
+          await tasksRef().doc(taskToDelete.id).delete();
+        } catch(err) {
+          console.error(err);
+        }
+        setShowToast(false);
+        setDeletedTask(null);
+      }, 5000);
+
+      setUndoTimeout(timeout);
     };
+
+    const undoDelete = () => {
+      if (!undoTimeout) return;
+
+      // Clear the deletion timeout
+      clearTimeout(undoTimeout);
+      setUndoTimeout(null);
+      setShowToast(false);
+      setDeletedTask(null);
+    };
+
+    // Hide the task being deleted from the list temporarily
+    const visibleTodos = deletedTask ? todos.filter(t => t.id !== deletedTask.id) : todos;
     const startEdit = (todo) => { setEditingId(todo.id); setEditText(todo.text); };
     const saveEdit = async (id) => {
       if(!editText.trim()) { setEditingId(null); setEditText(''); return; }
@@ -413,10 +466,10 @@
       return due < today && due.toDateString() !== today.toDateString();
     };
 
-    const filtered = todos.filter(t => filter === 'active' ? !t.completed : filter === 'completed' ? t.completed : true);
+    const filtered = visibleTodos.filter(t => filter === 'active' ? !t.completed : filter === 'completed' ? t.completed : true);
 
-    const activeCount = todos.filter(t => !t.completed).length;
-    const completedCount = todos.filter(t => t.completed).length;
+    const activeCount = visibleTodos.filter(t => !t.completed).length;
+    const completedCount = visibleTodos.filter(t => t.completed).length;
 
     const signOut = () => auth.signOut();
 
@@ -491,7 +544,7 @@
             React.createElement("button",{key:f,onClick:()=>setFilter(f),className:`px-4 py-2 rounded-lg transition-colors ${filter===f ? 'bg-indigo-500 text-white' : darkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`},
               f.charAt(0).toUpperCase() + f.slice(1),
               ' ',
-              f==='all'?`(${todos.length})` : f==='active'? `(${activeCount})` : `(${completedCount})`
+              f==='all'?`(${visibleTodos.length})` : f==='active'? `(${activeCount})` : `(${completedCount})`
             )
           )
         ),
@@ -600,6 +653,20 @@
             React.createElement("div",{className:"mt-6 flex justify-end"},
               React.createElement("button",{onClick:()=>setShowCategoryModal(false),className:`px-4 py-2 rounded-lg ${darkMode ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'}`},"Done")
             )
+          )
+        ),
+
+        // Toast Notification for Undo Delete
+        showToast && deletedTask && React.createElement("div",{className:"fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50 animate-slide-up"},
+          React.createElement("div",{className:`${darkMode ? 'bg-gray-700 border border-gray-600' : 'bg-gray-900'} text-white px-6 py-4 rounded-xl shadow-2xl flex items-center gap-4 min-w-96`},
+            React.createElement("div",{className:"flex items-center gap-3 flex-1"},
+              React.createElement(Trash2,{size:20}),
+              React.createElement("div",null,
+                React.createElement("div",{className:"font-medium"},"Task deleted"),
+                React.createElement("div",{className:"text-sm text-gray-300 truncate max-w-xs"},deletedTask.text)
+              )
+            ),
+            React.createElement("button",{onClick:undoDelete,className:"px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg font-medium transition-colors"},"Undo")
           )
         )
       )
