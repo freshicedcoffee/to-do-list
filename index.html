@@ -17,7 +17,11 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 
-  <style> body { margin: 0; font-family: system-ui, -apple-system, sans-serif; } </style>
+  <style> 
+    body { margin: 0; font-family: system-ui, -apple-system, sans-serif; } 
+    .dragging { opacity: 0.5; }
+    .drag-over { border-top: 3px solid #6366f1; }
+  </style>
 </head>
 <body>
   <div id="root"></div>
@@ -61,6 +65,7 @@
   function Tag(props){ return Icon("svg",{width:props.size||20,height:props.size||20,viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:2}, Icon("path",{d:"M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"}), Icon("line",{x1:7,y1:7,x2:7.01,y2:7})); }
   function Sun(props){ return Icon("svg",{width:props.size||20,height:props.size||20,viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:2}, Icon("circle",{cx:12,cy:12,r:5}), Icon("line",{x1:12,y1:1,x2:12,y2:3}), Icon("line",{x1:12,y1:21,x2:12,y2:23}), Icon("line",{x1:4.22,y1:4.22,x2:5.64,y2:5.64}), Icon("line",{x1:18.36,y1:18.36,x2:19.78,y2:19.78}), Icon("line",{x1:1,y1:12,x2:3,y2:12}), Icon("line",{x1:21,y1:12,x2:23,y2:12}), Icon("line",{x1:4.22,y1:19.78,x2:5.64,y2:18.36}), Icon("line",{x1:18.36,y1:5.64,x2:19.78,y2:4.22})); }
   function Moon(props){ return Icon("svg",{width:props.size||20,height:props.size||20,viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:2}, Icon("path",{d:"M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"})); }
+  function GripVertical(props){ return Icon("svg",{width:props.size||20,height:props.size||20,viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:2}, Icon("circle",{cx:9,cy:12,r:1}), Icon("circle",{cx:9,cy:5,r:1}), Icon("circle",{cx:9,cy:19,r:1}), Icon("circle",{cx:15,cy:12,r:1}), Icon("circle",{cx:15,cy:5,r:1}), Icon("circle",{cx:15,cy:19,r:1})); }
 
   /* ---------- Helper functions ---------- */
   const formatDate = (d) => {
@@ -179,6 +184,8 @@
     const [editingId, setEditingId] = useState(null);
     const [editText, setEditText] = useState('');
     const [loading, setLoading] = useState(true);
+    const [draggedId, setDraggedId] = useState(null);
+    const [dragOverId, setDragOverId] = useState(null);
 
     const categories = ['Work','Personal','Shopping','Health','Other'];
     const priorities = ['low','medium','high'];
@@ -189,9 +196,18 @@
     // subscribe to tasks
     useEffect(() => {
       setLoading(true);
-      const q = tasksRef().orderBy('priorityIndex','asc').orderBy('createdAt','asc');
-      const unsub = q.onSnapshot(snapshot => {
+      const unsub = tasksRef().onSnapshot(snapshot => {
         const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        // Sort by sortOrder if it exists, otherwise by createdAt
+        items.sort((a, b) => {
+          const aSort = a.sortOrder !== undefined ? a.sortOrder : 999999;
+          const bSort = b.sortOrder !== undefined ? b.sortOrder : 999999;
+          if (aSort !== bSort) return aSort - bSort;
+          // Fallback to createdAt
+          const aTime = a.createdAt?.seconds || 0;
+          const bTime = b.createdAt?.seconds || 0;
+          return aTime - bTime;
+        });
         setTodos(items);
         setLoading(false);
       }, err => {
@@ -207,6 +223,8 @@
     // add / edit / delete functions -> write to Firestore
     const addTodo = async () => {
       if(!input.trim()) return;
+      // Find the highest sort order and add 1
+      const maxSort = todos.length > 0 ? Math.max(...todos.map(t => t.sortOrder || 0)) : 0;
       const data = {
         text: input,
         completed: false,
@@ -214,6 +232,7 @@
         dueDate: dueDate || null,
         priority,
         priorityIndex: priorityIndex(priority),
+        sortOrder: maxSort + 1,
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       };
       try {
@@ -251,6 +270,64 @@
       const batch = firestore.batch();
       snapshot.forEach(doc => batch.delete(doc.ref));
       await batch.commit();
+    };
+
+    // Drag and drop handlers
+    const handleDragStart = (e, id) => {
+      setDraggedId(id);
+      e.dataTransfer.effectAllowed = 'move';
+    };
+
+    const handleDragOver = (e, id) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      if (draggedId !== id) {
+        setDragOverId(id);
+      }
+    };
+
+    const handleDragLeave = () => {
+      setDragOverId(null);
+    };
+
+    const handleDrop = async (e, targetId) => {
+      e.preventDefault();
+      setDragOverId(null);
+      
+      if (!draggedId || draggedId === targetId) {
+        setDraggedId(null);
+        return;
+      }
+
+      // Reorder the tasks
+      const draggedIndex = filtered.findIndex(t => t.id === draggedId);
+      const targetIndex = filtered.findIndex(t => t.id === targetId);
+      
+      if (draggedIndex === -1 || targetIndex === -1) return;
+
+      // Create new order
+      const newOrder = [...filtered];
+      const [removed] = newOrder.splice(draggedIndex, 1);
+      newOrder.splice(targetIndex, 0, removed);
+
+      // Update sortOrder in Firestore
+      const batch = firestore.batch();
+      newOrder.forEach((todo, index) => {
+        batch.update(tasksRef().doc(todo.id), { sortOrder: index });
+      });
+
+      try {
+        await batch.commit();
+      } catch (err) {
+        console.error('Reorder error:', err);
+      }
+
+      setDraggedId(null);
+    };
+
+    const handleDragEnd = () => {
+      setDraggedId(null);
+      setDragOverId(null);
     };
 
     const isOverdue = (d) => {
@@ -342,8 +419,20 @@
         loading ? React.createElement("div",{className:`p-6 text-center ${darkMode ? 'text-gray-500' : 'text-gray-400'}`},"Loading tasks...") :
         React.createElement("div",{className:"space-y-2"},
           filtered.length === 0 ? React.createElement("p",{className:`text-center ${darkMode ? 'text-gray-500' : 'text-gray-400'} py-12`}, filter === 'all' ? 'No tasks yet. Add one to get started!' : `No ${filter} tasks.`) :
-          filtered.map(todo => React.createElement("div",{key:todo.id,className:`p-4 rounded-lg transition-colors group ${darkMode ? 'bg-gray-700 hover:bg-gray-650' : 'bg-gray-50 hover:bg-gray-100'}`},
+          filtered.map(todo => React.createElement("div",{
+            key:todo.id,
+            draggable:true,
+            onDragStart:(e)=>handleDragStart(e, todo.id),
+            onDragOver:(e)=>handleDragOver(e, todo.id),
+            onDragLeave:handleDragLeave,
+            onDrop:(e)=>handleDrop(e, todo.id),
+            onDragEnd:handleDragEnd,
+            className:`p-4 rounded-lg transition-colors group cursor-move ${draggedId === todo.id ? 'dragging' : ''} ${dragOverId === todo.id ? 'drag-over' : ''} ${darkMode ? 'bg-gray-700 hover:bg-gray-650' : 'bg-gray-50 hover:bg-gray-100'}`
+          },
             React.createElement("div",{className:"flex items-start gap-3"},
+              React.createElement("div",{className:`flex-shrink-0 ${darkMode ? 'text-gray-500' : 'text-gray-400'} cursor-grab active:cursor-grabbing mt-1`},
+                React.createElement(GripVertical,{size:20})
+              ),
               React.createElement("button",{onClick:()=>toggleTodo(todo.id, todo.completed),className:`flex-shrink-0 w-6 h-6 rounded border-2 flex items-center justify-center transition-all mt-1 ${todo.completed ? 'bg-indigo-500 border-indigo-500' : darkMode ? 'border-gray-500 hover:border-indigo-400' : 'border-gray-300 hover:border-indigo-400'}`},
                 todo.completed && React.createElement(Check,{size:16})
               ),
