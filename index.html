@@ -191,7 +191,7 @@
     const [showCategoryModal, setShowCategoryModal] = useState(false);
     const [newCategory, setNewCategory] = useState('');
 
-    const defaultCategories = ['Work','Personal','Shopping','Health','Other'];
+    const defaultCategories = ['Work','Personal','Shopping'];
     const allCategories = [...defaultCategories, ...customCategories];
     const priorities = ['low','medium','high'];
 
@@ -281,7 +281,16 @@
 
     const toggleTodo = async (id, current) => {
       try {
-        await tasksRef().doc(id).update({ completed: !current });
+        const willBeCompleted = !current;
+        const updates = { completed: willBeCompleted };
+        
+        // If marking as completed, move to bottom
+        if (willBeCompleted) {
+          const maxSort = todos.length > 0 ? Math.max(...todos.map(t => t.sortOrder || 0)) : 0;
+          updates.sortOrder = maxSort + 1;
+        }
+        
+        await tasksRef().doc(id).update(updates);
       } catch(err){ console.error(err); }
     };
     const deleteTodo = async (id) => {
