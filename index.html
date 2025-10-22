@@ -232,11 +232,19 @@
       const addTodo = async () => {
         if(!input.trim()) return;
         const minSort = todos.length > 0 ? Math.min(...todos.map(t => t.sortOrder || 0)) : 0;
+        
+        // Fix timezone issue - convert date string to local date at noon
+        let dueDateValue = null;
+        if (dueDate) {
+          const [year, month, day] = dueDate.split('-');
+          dueDateValue = new Date(year, month - 1, day, 12, 0, 0).toISOString();
+        }
+        
         const data = {
           text: input,
           completed: false,
           category: category || 'Other',
-          dueDate: dueDate || null,
+          dueDate: dueDateValue,
           priority,
           priorityIndex: priorityIndex(priority),
           sortOrder: minSort - 1,
@@ -604,9 +612,9 @@
                 if (overdueTask) {
                   cardBgClass = darkMode ? 'bg-red-950 hover:bg-red-900 border-2 border-red-800' : 'bg-red-50 hover:bg-red-100 border-2 border-red-200';
                 } else if (dueToday) {
-                  cardBgClass = darkMode ? 'bg-orange-950 hover:bg-orange-900 border-2 border-orange-800' : 'bg-orange-50 hover:bg-orange-100 border-2 border-orange-200';
-                } else if (dueTomorrow) {
                   cardBgClass = darkMode ? 'bg-yellow-950 hover:bg-yellow-900 border-2 border-yellow-800' : 'bg-yellow-50 hover:bg-yellow-100 border-2 border-yellow-200';
+                } else if (dueTomorrow) {
+                  cardBgClass = darkMode ? 'bg-green-950 hover:bg-green-900 border-2 border-green-800' : 'bg-green-50 hover:bg-green-100 border-2 border-green-200';
                 }
                 
                 return React.createElement("div",{
@@ -650,7 +658,7 @@
                             React.createElement(Tag,{size:12}),
                             todo.category || 'Other'
                           ),
-                          todo.dueDate ? React.createElement("span",{className:`inline-flex items-center gap-1 px-2 py-1 rounded text-xs border ${ overdueTask ? darkMode ? 'bg-red-900 text-red-200 border-red-700 font-semibold' : 'bg-red-100 text-red-700 border-red-300 font-semibold' : dueToday ? darkMode ? 'bg-orange-900 text-orange-200 border-orange-700 font-semibold' : 'bg-orange-100 text-orange-700 border-orange-300 font-semibold' : dueTomorrow ? darkMode ? 'bg-yellow-900 text-yellow-200 border-yellow-700 font-semibold' : 'bg-yellow-100 text-yellow-700 border-yellow-300 font-semibold' : darkMode ? 'bg-blue-900 text-blue-300 border-blue-700' : 'bg-blue-50 text-blue-600 border-blue-200' }`},
+                          todo.dueDate ? React.createElement("span",{className:`inline-flex items-center gap-1 px-2 py-1 rounded text-xs border ${ overdueTask ? darkMode ? 'bg-red-900 text-red-200 border-red-700 font-semibold' : 'bg-red-100 text-red-700 border-red-300 font-semibold' : dueToday ? darkMode ? 'bg-yellow-900 text-yellow-200 border-yellow-700 font-semibold' : 'bg-yellow-100 text-yellow-700 border-yellow-300 font-semibold' : dueTomorrow ? darkMode ? 'bg-green-900 text-green-200 border-green-700 font-semibold' : 'bg-green-100 text-green-700 border-green-300 font-semibold' : darkMode ? 'bg-blue-900 text-blue-300 border-blue-700' : 'bg-blue-50 text-blue-600 border-blue-200' }`},
                             React.createElement(Calendar,{size:12}),
                             (todo.dueDate && todo.dueDate.seconds) ? new Date(todo.dueDate.seconds*1000).toLocaleDateString() : (typeof todo.dueDate === 'string' ? formatDate(todo.dueDate) : String(todo.dueDate)),
                             overdueTask ? ' (Overdue!)' : dueToday ? ' (Today!)' : dueTomorrow ? ' (Tomorrow)' : null
