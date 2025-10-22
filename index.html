@@ -5,688 +5,731 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Get Sh*t Done!</title>
   <meta name="theme-color" content="#6366f1" />
-  <!-- Tailwind for quick styles -->
   <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- React -->
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-
-  <!-- Firebase (compat libs are easiest for in-browser use without build tools) -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
-
   <style> 
     body { margin: 0; font-family: system-ui, -apple-system, sans-serif; } 
     .dragging { opacity: 0.5; }
     .drag-over { border-top: 3px solid #6366f1; }
     @keyframes slide-up {
-      from {
-        transform: translateX(-50%) translateY(100px);
-        opacity: 0;
-      }
-      to {
-        transform: translateX(-50%) translateY(0);
-        opacity: 1;
-      }
+      from { transform: translateX(-50%) translateY(100px); opacity: 0; }
+      to { transform: translateX(-50%) translateY(0); opacity: 1; }
     }
-    .animate-slide-up {
-      animation: slide-up 0.3s ease-out;
-    }
+    .animate-slide-up { animation: slide-up 0.3s ease-out; }
   </style>
 </head>
 <body>
   <div id="root"></div>
-
   <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAvOX-RWiwyOfJKwWeEZMC4Yca1grklMJs",
+      authDomain: "todolist-6dd72.firebaseapp.com",
+      projectId: "todolist-6dd72",
+      storageBucket: "todolist-6dd72.firebasestorage.app",
+      messagingSenderId: "6906407441",
+      appId: "1:6906407441:web:ff6f8463af810fe3189fb0",
+      measurementId: "G-K9LMMSZKVS"
+    };
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyAvOX-RWiwyOfJKwWeEZMC4Yca1grklMJs",
-    authDomain: "todolist-6dd72.firebaseapp.com",
-    projectId: "todolist-6dd72",
-    storageBucket: "todolist-6dd72.firebasestorage.app",
-    messagingSenderId: "6906407441",
-    appId: "1:6906407441:web:ff6f8463af810fe3189fb0",
-    measurementId: "G-K9LMMSZKVS"
-  };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const firestore = firebase.firestore();
+    firestore.enablePersistence().catch(err => {});
 
+    const { useState, useEffect } = React;
 
-  // Initialize Firebase
-  firebase.initializeApp(firebaseConfig);
-  const auth = firebase.auth();
-  const firestore = firebase.firestore();
+    function Icon(tagName, props, ...children) {
+      return React.createElement(tagName, props, ...children);
+    }
+    function Plus(p){ return Icon("svg",{width:p.size||20,height:p.size||20,viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:2}, Icon("line",{x1:12,y1:5,x2:12,y2:19}), Icon("line",{x1:5,y1:12,x2:19,y2:12})); }
+    function Check(p){ return Icon("svg",{width:p.size||20,height:p.size||20,viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:2}, Icon("polyline",{points:"20 6 9 17 4 12"})); }
+    function Trash2(p){ return Icon("svg",{width:p.size||20,height:p.size||20,viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:2}, Icon("polyline",{points:"3 6 5 6 21 6"}), Icon("path",{d:"M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"}), Icon("line",{x1:10,y1:11,x2:10,y2:17}), Icon("line",{x1:14,y1:11,x2:14,y2:17})); }
+    function Edit2(p){ return Icon("svg",{width:p.size||20,height:p.size||20,viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:2}, Icon("path",{d:"M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"})); }
+    function X(p){ return Icon("svg",{width:p.size||20,height:p.size||20,viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:2}, Icon("line",{x1:18,y1:6,x2:6,y2:18}), Icon("line",{x1:6,y1:6,x2:18,y2:18})); }
+    function AlertCircle(p){ return Icon("svg",{width:p.size||20,height:p.size||20,viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:2}, Icon("circle",{cx:12,cy:12,r:10}), Icon("line",{x1:12,y1:8,x2:12,y2:12}), Icon("line",{x1:12,y1:16,x2:12.01,y2:16})); }
+    function Calendar(p){ return Icon("svg",{width:p.size||20,height:p.size||20,viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:2}, Icon("rect",{x:3,y:4,width:18,height:18,rx:2,ry:2}), Icon("line",{x1:16,y1:2,x2:16,y2:6}), Icon("line",{x1:8,y1:2,x2:8,y2:6}), Icon("line",{x1:3,y1:10,x2:21,y2:10})); }
+    function Tag(p){ return Icon("svg",{width:p.size||20,height:p.size||20,viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:2}, Icon("path",{d:"M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"}), Icon("line",{x1:7,y1:7,x2:7.01,y2:7})); }
+    function Sun(p){ return Icon("svg",{width:p.size||20,height:p.size||20,viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:2}, Icon("circle",{cx:12,cy:12,r:5}), Icon("line",{x1:12,y1:1,x2:12,y2:3}), Icon("line",{x1:12,y1:21,x2:12,y2:23}), Icon("line",{x1:4.22,y1:4.22,x2:5.64,y2:5.64}), Icon("line",{x1:18.36,y1:18.36,x2:19.78,y2:19.78}), Icon("line",{x1:1,y1:12,x2:3,y2:12}), Icon("line",{x1:21,y1:12,x2:23,y2:12}), Icon("line",{x1:4.22,y1:19.78,x2:5.64,y2:18.36}), Icon("line",{x1:18.36,y1:5.64,x2:19.78,y2:4.22})); }
+    function Moon(p){ return Icon("svg",{width:p.size||20,height:p.size||20,viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:2}, Icon("path",{d:"M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"})); }
+    function Settings(p){ return Icon("svg",{width:p.size||20,height:p.size||20,viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:2}, Icon("circle",{cx:12,cy:12,r:3}), Icon("path",{d:"M12 1v6m0 6v6m8.66-9l-5.2 3M8.54 14l-5.2 3m13.32 0l-5.2-3M8.54 10l-5.2-3"})); }
+    function GripVertical(p){ return Icon("svg",{width:p.size||20,height:p.size||20,viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:2}, Icon("circle",{cx:9,cy:12,r:1}), Icon("circle",{cx:9,cy:5,r:1}), Icon("circle",{cx:9,cy:19,r:1}), Icon("circle",{cx:15,cy:12,r:1}), Icon("circle",{cx:15,cy:5,r:1}), Icon("circle",{cx:15,cy:19,r:1})); }
+    function List(p){ return Icon("svg",{width:p.size||20,height:p.size||20,viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:2}, Icon("line",{x1:8,y1:6,x2:21,y2:6}), Icon("line",{x1:8,y1:12,x2:21,y2:12}), Icon("line",{x1:8,y1:18,x2:21,y2:18}), Icon("line",{x1:3,y1:6,x2:3.01,y2:6}), Icon("line",{x1:3,y1:12,x2:3.01,y2:12}), Icon("line",{x1:3,y1:18,x2:3.01,y2:18})); }
+    function CalendarIcon(p){ return Icon("svg",{width:p.size||20,height:p.size||20,viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:2}, Icon("rect",{x:3,y:4,width:18,height:18,rx:2,ry:2}), Icon("line",{x1:16,y1:2,x2:16,y2:6}), Icon("line",{x1:8,y1:2,x2:8,y2:6}), Icon("line",{x1:3,y1:10,x2:21,y2:10})); }
+    function ChevronLeft(p){ return Icon("svg",{width:p.size||20,height:p.size||20,viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:2}, Icon("polyline",{points:"15 18 9 12 15 6"})); }
+    function ChevronRight(p){ return Icon("svg",{width:p.size||20,height:p.size||20,viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:2}, Icon("polyline",{points:"9 18 15 12 9 6"})); }
 
-  // Try to enable offline persistence (fails if multiple tabs unsupported)
-  firestore.enablePersistence().catch(function(err) {
-    // console.warn('Persistence not enabled:', err);
-  });
+    const formatDate = (d) => {
+      if(!d) return null;
+      try { return new Date(d).toLocaleDateString(); } catch(e){ return d; }
+    };
 
-  const { useState, useEffect } = React;
-
-  /* ---------- small SVG icon components (React.createElement style) ---------- */
-  function Icon(tagName, props, ...children) {
-    return React.createElement(tagName, props, ...children);
-  }
-  function Plus(props){ return Icon("svg",{width:props.size||20,height:props.size||20,viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:2}, Icon("line",{x1:12,y1:5,x2:12,y2:19}), Icon("line",{x1:5,y1:12,x2:19,y2:12})); }
-  function Settings(props){ return Icon("svg",{width:props.size||20,height:props.size||20,viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:2}, Icon("circle",{cx:12,cy:12,r:3}), Icon("path",{d:"M12 1v6m0 6v6m8.66-9l-5.2 3M8.54 14l-5.2 3m13.32 0l-5.2-3M8.54 10l-5.2-3"})); }
-  function Check(props){ return Icon("svg",{width:props.size||20,height:props.size||20,viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:2}, Icon("polyline",{points:"20 6 9 17 4 12"})); }
-  function Trash2(props){ return Icon("svg",{width:props.size||20,height:props.size||20,viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:2}, Icon("polyline",{points:"3 6 5 6 21 6"}), Icon("path",{d:"M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"}), Icon("line",{x1:10,y1:11,x2:10,y2:17}), Icon("line",{x1:14,y1:11,x2:14,y2:17})); }
-  function Edit2(props){ return Icon("svg",{width:props.size||20,height:props.size||20,viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:2}, Icon("path",{d:"M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"})); }
-  function X(props){ return Icon("svg",{width:props.size||20,height:props.size||20,viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:2}, Icon("line",{x1:18,y1:6,x2:6,y2:18}), Icon("line",{x1:6,y1:6,x2:18,y2:18})); }
-  function AlertCircle(props){ return Icon("svg",{width:props.size||20,height:props.size||20,viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:2}, Icon("circle",{cx:12,cy:12,r:10}), Icon("line",{x1:12,y1:8,x2:12,y2:12}), Icon("line",{x1:12,y1:16,x2:12.01,y2:16})); }
-  function Calendar(props){ return Icon("svg",{width:props.size||20,height:props.size||20,viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:2}, Icon("rect",{x:3,y:4,width:18,height:18,rx:2,ry:2}), Icon("line",{x1:16,y1:2,x2:16,y2:6}), Icon("line",{x1:8,y1:2,x2:8,y2:6}), Icon("line",{x1:3,y1:10,x2:21,y2:10})); }
-  function Tag(props){ return Icon("svg",{width:props.size||20,height:props.size||20,viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:2}, Icon("path",{d:"M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"}), Icon("line",{x1:7,y1:7,x2:7.01,y2:7})); }
-  function Sun(props){ return Icon("svg",{width:props.size||20,height:props.size||20,viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:2}, Icon("circle",{cx:12,cy:12,r:5}), Icon("line",{x1:12,y1:1,x2:12,y2:3}), Icon("line",{x1:12,y1:21,x2:12,y2:23}), Icon("line",{x1:4.22,y1:4.22,x2:5.64,y2:5.64}), Icon("line",{x1:18.36,y1:18.36,x2:19.78,y2:19.78}), Icon("line",{x1:1,y1:12,x2:3,y2:12}), Icon("line",{x1:21,y1:12,x2:23,y2:12}), Icon("line",{x1:4.22,y1:19.78,x2:5.64,y2:18.36}), Icon("line",{x1:18.36,y1:5.64,x2:19.78,y2:4.22})); }
-  function Moon(props){ return Icon("svg",{width:props.size||20,height:props.size||20,viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:2}, Icon("path",{d:"M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"})); }
-  function GripVertical(props){ return Icon("svg",{width:props.size||20,height:props.size||20,viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:2}, Icon("circle",{cx:9,cy:12,r:1}), Icon("circle",{cx:9,cy:5,r:1}), Icon("circle",{cx:9,cy:19,r:1}), Icon("circle",{cx:15,cy:12,r:1}), Icon("circle",{cx:15,cy:5,r:1}), Icon("circle",{cx:15,cy:19,r:1})); }
-
-  /* ---------- Helper functions ---------- */
-  const formatDate = (d) => {
-    if(!d) return null;
-    try { return new Date(d).toLocaleDateString(); } catch(e){ return d; }
-  };
-
-  /* ---------- Main App ---------- */
-  function App(){
-    const [user, setUser] = useState(null);
-    const [initializing, setInitializing] = useState(true);
-    const [darkMode, setDarkMode] = useState(() => {
-      const saved = window.darkModePreference;
-      if (saved !== undefined) return saved;
-      return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-    });
-
-    // Save dark mode preference
-    useEffect(() => {
-      window.darkModePreference = darkMode;
-    }, [darkMode]);
-
-    // Auth state listener
-    useEffect(() => {
-      const unsub = auth.onAuthStateChanged(u => {
-        setUser(u);
-        setInitializing(false);
+    function App(){
+      const [user, setUser] = useState(null);
+      const [initializing, setInitializing] = useState(true);
+      const [darkMode, setDarkMode] = useState(() => {
+        const saved = window.darkModePreference;
+        if (saved !== undefined) return saved;
+        return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
       });
-      return () => unsub();
-    }, []);
 
-    if(initializing) {
-      return React.createElement("div",{className:`min-h-screen flex items-center justify-center ${darkMode ? 'bg-gray-900 text-white' : 'bg-white'}`}, React.createElement("div",null,"Loading..."));
+      useEffect(() => {
+        window.darkModePreference = darkMode;
+      }, [darkMode]);
+
+      useEffect(() => {
+        const unsub = auth.onAuthStateChanged(u => {
+          setUser(u);
+          setInitializing(false);
+        });
+        return () => unsub();
+      }, []);
+
+      if(initializing) {
+        return React.createElement("div",{className:`min-h-screen flex items-center justify-center ${darkMode ? 'bg-gray-900 text-white' : 'bg-white'}`}, React.createElement("div",null,"Loading..."));
+      }
+
+      return user ? React.createElement(TodoApp,{user, darkMode, setDarkMode}) : React.createElement(AuthView,{darkMode, setDarkMode});
     }
 
-    return user ? React.createElement(TodoAppWithAuth,{user, darkMode, setDarkMode}) : React.createElement(AuthView,{darkMode, setDarkMode});
-  }
+    function AuthView({darkMode, setDarkMode}){
+      const [mode, setMode] = useState('login');
+      const [email, setEmail] = useState('');
+      const [password, setPassword] = useState('');
+      const [loading, setLoading] = useState(false);
+      const [error, setError] = useState('');
 
-  /* ---------- Authentication view (signup / login + Google) ---------- */
-  function AuthView({darkMode, setDarkMode}){
-    const [mode, setMode] = useState('login'); // 'login' or 'signup'
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
-
-    const doEmailAuth = async () => {
-      setError('');
-      if(!email || !password){ setError('Email and password required'); return; }
-      setLoading(true);
-      try {
-        if(mode === 'signup'){
-          await auth.createUserWithEmailAndPassword(email, password);
-        } else {
-          await auth.signInWithEmailAndPassword(email, password);
-        }
-      } catch(err){
-        setError(err.message || 'Auth error');
-      } finally { setLoading(false); }
-    };
-
-    const googleSignIn = async () => {
-      setError('');
-      const provider = new firebase.auth.GoogleAuthProvider();
-      try {
-        await auth.signInWithPopup(provider);
-      } catch(err){
-        setError(err.message || 'Google sign-in failed');
-      }
-    };
-
-    return React.createElement("div",{className:`min-h-screen flex items-center justify-center p-4 ${darkMode ? 'bg-gradient-to-br from-gray-900 to-gray-800' : 'bg-gradient-to-br from-blue-50 to-indigo-100'}`},
-      React.createElement("div",{className:`w-full max-w-md ${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-2xl p-6 shadow-lg relative`},
-        React.createElement("button",{onClick:()=>setDarkMode(!darkMode),className:`absolute top-4 right-4 p-2 rounded-lg ${darkMode ? 'bg-gray-700 text-yellow-400 hover:bg-gray-600' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'} transition-colors`},
-          darkMode ? React.createElement(Sun,{size:20}) : React.createElement(Moon,{size:20})
-        ),
-        React.createElement("h2",{className:`text-2xl font-bold mb-2 ${darkMode ? 'text-white' : 'text-gray-800'}`},"Let's get sh*t done!"),
-        React.createElement("p",{className:`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'} mb-4`},"Sign in to sync your tasks across devices."),
-
-        error && React.createElement("div",{className:"mb-3 text-sm text-red-600"}, error),
-
-        React.createElement("div",{className:"mb-3"},
-          React.createElement("label",{className:`block text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'} mb-1`},"Email"),
-          React.createElement("input",{type:"email",value:email,onChange:e=>setEmail(e.target.value),className:`w-full px-3 py-2 border rounded ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`})
-        ),
-        React.createElement("div",{className:"mb-4"},
-          React.createElement("label",{className:`block text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'} mb-1`},"Password"),
-          React.createElement("input",{type:"password",value:password,onChange:e=>setPassword(e.target.value),className:`w-full px-3 py-2 border rounded ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`})
-        ),
-        React.createElement("div",{className:"flex gap-2 mb-4"},
-          React.createElement("button",{onClick:doEmailAuth,disabled:loading,className:"flex-1 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded"}, loading ? 'Please wait...' : (mode==='signup' ? 'Create account' : 'Sign in') ),
-          React.createElement("button",{onClick:()=>setMode(mode==='signup'?'login':'signup'),className:`px-3 py-2 rounded border ${darkMode ? 'border-gray-600 text-gray-300 hover:bg-gray-700' : 'border-gray-300 text-gray-700 hover:bg-gray-50'}`}, mode==='signup' ? 'Have an account?' : 'Create account')
-        ),
-        React.createElement("div",{className:`mb-2 text-center ${darkMode ? 'text-gray-600' : 'text-gray-400'}`},"or"),
-        React.createElement("div",{className:"flex"},
-          React.createElement("button",{onClick:googleSignIn,className:`w-full ${darkMode ? 'bg-gray-700 border-gray-600 hover:bg-gray-600' : 'bg-white border-gray-300 hover:bg-gray-50'} border rounded py-2 flex items-center justify-center gap-2`}, 
-            React.createElement("img",{src:"https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg", style:{width:20,height:20}}),
-            React.createElement("span",{className:darkMode ? 'text-white' : 'text-gray-700'}, "Sign in with Google")
-          )
-        ),
-
-        React.createElement("p",{className:`mt-4 text-xs ${darkMode ? 'text-gray-600' : 'text-gray-400'}`},"Thanks for checking this out!")
-      )
-    );
-  }
-
-  /* ---------- Todo app (when logged in) ---------- */
-  function TodoAppWithAuth({ user, darkMode, setDarkMode }){
-    // local UI state
-    const [todos, setTodos] = useState([]);
-    const [input, setInput] = useState('');
-    const [category, setCategory] = useState('');
-    const [dueDate, setDueDate] = useState('');
-    const [priority, setPriority] = useState('medium');
-    const [filter, setFilter] = useState('all');
-    const [editingId, setEditingId] = useState(null);
-    const [editText, setEditText] = useState('');
-    const [loading, setLoading] = useState(true);
-    const [draggedId, setDraggedId] = useState(null);
-    const [dragOverId, setDragOverId] = useState(null);
-    const [customCategories, setCustomCategories] = useState([]);
-    const [showCategoryModal, setShowCategoryModal] = useState(false);
-    const [newCategory, setNewCategory] = useState('');
-    const [deletedTask, setDeletedTask] = useState(null);
-    const [showToast, setShowToast] = useState(false);
-    const [undoTimeout, setUndoTimeout] = useState(null);
-
-    const defaultCategories = ['Work','Personal','Shopping'];
-    const allCategories = [...defaultCategories, ...customCategories];
-    const priorities = ['low','medium','high'];
-
-    // Firestore collection reference for this user's tasks
-    const tasksRef = () => firestore.collection('users').doc(user.uid).collection('tasks');
-    const userDocRef = () => firestore.collection('users').doc(user.uid);
-
-    // Load custom categories and initialize user document
-    useEffect(() => {
-      const initUser = async () => {
+      const doEmailAuth = async () => {
+        setError('');
+        if(!email || !password){ setError('Email and password required'); return; }
+        setLoading(true);
         try {
-          const doc = await userDocRef().get();
-          if (!doc.exists) {
-            // Create user document if it doesn't exist
-            await userDocRef().set({
-              customCategories: [],
-              createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
+          if(mode === 'signup'){
+            await auth.createUserWithEmailAndPassword(email, password);
+          } else {
+            await auth.signInWithEmailAndPassword(email, password);
           }
-        } catch(err) {
-          console.error('Init user error:', err);
-        }
+        } catch(err){
+          setError(err.message || 'Auth error');
+        } finally { setLoading(false); }
       };
 
-      initUser();
-
-      const unsub = userDocRef().onSnapshot(doc => {
-        if (doc.exists) {
-          const data = doc.data();
-          setCustomCategories(data.customCategories || []);
-        }
-      }, err => {
-        console.error('user doc error', err);
-      });
-      return () => unsub();
-    }, [user.uid]);
-
-    // subscribe to tasks
-    useEffect(() => {
-      setLoading(true);
-      const unsub = tasksRef().onSnapshot(snapshot => {
-        const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        // Sort by sortOrder if it exists, otherwise by createdAt
-        items.sort((a, b) => {
-          const aSort = a.sortOrder !== undefined ? a.sortOrder : 999999;
-          const bSort = b.sortOrder !== undefined ? b.sortOrder : 999999;
-          if (aSort !== bSort) return aSort - bSort;
-          // Fallback to createdAt
-          const aTime = a.createdAt?.seconds || 0;
-          const bTime = b.createdAt?.seconds || 0;
-          return aTime - bTime;
-        });
-        setTodos(items);
-        setLoading(false);
-      }, err => {
-        console.error('tasks snapshot error', err);
-        setLoading(false);
-      });
-      return () => unsub();
-    }, [user.uid]);
-
-    // helpers for priority index ordering
-    const priorityIndex = p => ({high:0, medium:1, low:2}[p] ?? 1);
-
-    // add / edit / delete functions -> write to Firestore
-    const addTodo = async () => {
-      if(!input.trim()) return;
-      // Find the lowest sort order and subtract 1 to add at top
-      const minSort = todos.length > 0 ? Math.min(...todos.map(t => t.sortOrder || 0)) : 0;
-      const data = {
-        text: input,
-        completed: false,
-        category: category || 'Other',
-        dueDate: dueDate || null,
-        priority,
-        priorityIndex: priorityIndex(priority),
-        sortOrder: minSort - 1,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      };
-      try {
-        await tasksRef().add(data);
-        setInput(''); setCategory(''); setDueDate(''); setPriority('medium');
-      } catch(err){
-        console.error('addTodo error', err);
-      }
-    };
-
-    const toggleTodo = async (id, current) => {
-      try {
-        const willBeCompleted = !current;
-        const updates = { completed: willBeCompleted };
-        
-        // If marking as completed, move to bottom
-        if (willBeCompleted) {
-          const maxSort = todos.length > 0 ? Math.max(...todos.map(t => t.sortOrder || 0)) : 0;
-          updates.sortOrder = maxSort + 1;
-        }
-        
-        await tasksRef().doc(id).update(updates);
-      } catch(err){ console.error(err); }
-    };
-    const deleteTodo = async (id) => {
-      // Store the task for undo
-      const taskToDelete = todos.find(t => t.id === id);
-      if (!taskToDelete) return;
-
-      // Clear any existing timeout
-      if (undoTimeout) {
-        clearTimeout(undoTimeout);
-      }
-
-      // Immediately hide the task from view
-      setDeletedTask(taskToDelete);
-      setShowToast(true);
-
-      // Set timeout to actually delete after 5 seconds
-      const timeout = setTimeout(async () => {
+      const googleSignIn = async () => {
+        setError('');
+        const provider = new firebase.auth.GoogleAuthProvider();
         try {
-          await tasksRef().doc(taskToDelete.id).delete();
-        } catch(err) {
-          console.error(err);
+          await auth.signInWithPopup(provider);
+        } catch(err){
+          setError(err.message || 'Google sign-in failed');
         }
+      };
+
+      return React.createElement("div",{className:`min-h-screen flex items-center justify-center p-4 ${darkMode ? 'bg-gradient-to-br from-gray-900 to-gray-800' : 'bg-gradient-to-br from-blue-50 to-indigo-100'}`},
+        React.createElement("div",{className:`w-full max-w-md ${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-2xl p-6 shadow-lg relative`},
+          React.createElement("button",{onClick:()=>setDarkMode(!darkMode),className:`absolute top-4 right-4 p-2 rounded-lg ${darkMode ? 'bg-gray-700 text-yellow-400 hover:bg-gray-600' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'} transition-colors`},
+            darkMode ? React.createElement(Sun,{size:20}) : React.createElement(Moon,{size:20})
+          ),
+          React.createElement("h2",{className:`text-2xl font-bold mb-2 ${darkMode ? 'text-white' : 'text-gray-800'}`},"Let's get sh*t done!"),
+          React.createElement("p",{className:`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'} mb-4`},"Sign in to sync your tasks across devices."),
+          error && React.createElement("div",{className:"mb-3 text-sm text-red-600"}, error),
+          React.createElement("div",{className:"mb-3"},
+            React.createElement("label",{className:`block text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'} mb-1`},"Email"),
+            React.createElement("input",{type:"email",value:email,onChange:e=>setEmail(e.target.value),className:`w-full px-3 py-2 border rounded ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`})
+          ),
+          React.createElement("div",{className:"mb-4"},
+            React.createElement("label",{className:`block text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'} mb-1`},"Password"),
+            React.createElement("input",{type:"password",value:password,onChange:e=>setPassword(e.target.value),className:`w-full px-3 py-2 border rounded ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`})
+          ),
+          React.createElement("div",{className:"flex gap-2 mb-4"},
+            React.createElement("button",{onClick:doEmailAuth,disabled:loading,className:"flex-1 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded"}, loading ? 'Please wait...' : (mode==='signup' ? 'Create account' : 'Sign in') ),
+            React.createElement("button",{onClick:()=>setMode(mode==='signup'?'login':'signup'),className:`px-3 py-2 rounded border ${darkMode ? 'border-gray-600 text-gray-300 hover:bg-gray-700' : 'border-gray-300 text-gray-700 hover:bg-gray-50'}`}, mode==='signup' ? 'Have an account?' : 'Create account')
+          ),
+          React.createElement("div",{className:`mb-2 text-center ${darkMode ? 'text-gray-600' : 'text-gray-400'}`},"or"),
+          React.createElement("div",{className:"flex"},
+            React.createElement("button",{onClick:googleSignIn,className:`w-full ${darkMode ? 'bg-gray-700 border-gray-600 hover:bg-gray-600' : 'bg-white border-gray-300 hover:bg-gray-50'} border rounded py-2 flex items-center justify-center gap-2`}, 
+              React.createElement("img",{src:"https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg", style:{width:20,height:20}}),
+              React.createElement("span",{className:darkMode ? 'text-white' : 'text-gray-700'}, "Sign in with Google")
+            )
+          ),
+          React.createElement("p",{className:`mt-4 text-xs ${darkMode ? 'text-gray-600' : 'text-gray-400'}`},"Thanks for checking this out!")
+        )
+      );
+    }
+
+    function TodoApp({user, darkMode, setDarkMode}){
+      const [todos, setTodos] = useState([]);
+      const [input, setInput] = useState('');
+      const [category, setCategory] = useState('');
+      const [dueDate, setDueDate] = useState('');
+      const [priority, setPriority] = useState('medium');
+      const [filter, setFilter] = useState('all');
+      const [viewMode, setViewMode] = useState('list');
+      const [calendarDate, setCalendarDate] = useState(new Date());
+      const [customCategories, setCustomCategories] = useState([]);
+      const [showCategoryModal, setShowCategoryModal] = useState(false);
+      const [newCategory, setNewCategory] = useState('');
+      const [editingId, setEditingId] = useState(null);
+      const [editText, setEditText] = useState('');
+      const [draggedId, setDraggedId] = useState(null);
+      const [dragOverId, setDragOverId] = useState(null);
+      const [deletedTask, setDeletedTask] = useState(null);
+      const [showToast, setShowToast] = useState(false);
+      const [undoTimeout, setUndoTimeout] = useState(null);
+      
+      const defaultCategories = ['Work','Personal','Shopping'];
+      const allCategories = [...defaultCategories, ...customCategories];
+      const priorities = ['low','medium','high'];
+      
+      const tasksRef = () => firestore.collection('users').doc(user.uid).collection('tasks');
+      const userDocRef = () => firestore.collection('users').doc(user.uid);
+
+      useEffect(() => {
+        const initUser = async () => {
+          try {
+            const doc = await userDocRef().get();
+            if (!doc.exists) {
+              await userDocRef().set({
+                customCategories: [],
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+              });
+            }
+          } catch(err) {
+            console.error('Init user error:', err);
+          }
+        };
+        initUser();
+
+        const unsub = userDocRef().onSnapshot(doc => {
+          if (doc.exists) {
+            const data = doc.data();
+            setCustomCategories(data.customCategories || []);
+          }
+        });
+        return () => unsub();
+      }, [user.uid]);
+
+      useEffect(() => {
+        const unsub = tasksRef().onSnapshot(snapshot => {
+          const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          items.sort((a, b) => {
+            const aSort = a.sortOrder !== undefined ? a.sortOrder : 999999;
+            const bSort = b.sortOrder !== undefined ? b.sortOrder : 999999;
+            if (aSort !== bSort) return aSort - bSort;
+            const aTime = a.createdAt?.seconds || 0;
+            const bTime = b.createdAt?.seconds || 0;
+            return aTime - bTime;
+          });
+          setTodos(items);
+        });
+        return () => unsub();
+      }, [user.uid]);
+
+      const priorityIndex = p => ({high:0, medium:1, low:2}[p] ?? 1);
+
+      const addTodo = async () => {
+        if(!input.trim()) return;
+        const minSort = todos.length > 0 ? Math.min(...todos.map(t => t.sortOrder || 0)) : 0;
+        const data = {
+          text: input,
+          completed: false,
+          category: category || 'Other',
+          dueDate: dueDate || null,
+          priority,
+          priorityIndex: priorityIndex(priority),
+          sortOrder: minSort - 1,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+        try {
+          await tasksRef().add(data);
+          setInput(''); setCategory(''); setDueDate(''); setPriority('medium');
+        } catch(err){
+          console.error('addTodo error', err);
+        }
+      };
+
+      const toggleTodo = async (id, current) => {
+        try {
+          const willBeCompleted = !current;
+          const updates = { completed: willBeCompleted };
+          if (willBeCompleted) {
+            const maxSort = todos.length > 0 ? Math.max(...todos.map(t => t.sortOrder || 0)) : 0;
+            updates.sortOrder = maxSort + 1;
+          }
+          await tasksRef().doc(id).update(updates);
+        } catch(err){ console.error(err); }
+      };
+
+      const deleteTodo = async (id) => {
+        const taskToDelete = todos.find(t => t.id === id);
+        if (!taskToDelete) return;
+
+        if (undoTimeout) {
+          clearTimeout(undoTimeout);
+        }
+
+        setDeletedTask(taskToDelete);
+        setShowToast(true);
+
+        const timeout = setTimeout(async () => {
+          try {
+            await tasksRef().doc(taskToDelete.id).delete();
+          } catch(err) {
+            console.error(err);
+          }
+          setShowToast(false);
+          setDeletedTask(null);
+        }, 5000);
+
+        setUndoTimeout(timeout);
+      };
+
+      const undoDelete = () => {
+        if (!undoTimeout) return;
+        clearTimeout(undoTimeout);
+        setUndoTimeout(null);
         setShowToast(false);
         setDeletedTask(null);
-      }, 5000);
+      };
 
-      setUndoTimeout(timeout);
-    };
+      const startEdit = (todo) => { setEditingId(todo.id); setEditText(todo.text); };
+      const saveEdit = async (id) => {
+        if(!editText.trim()) { setEditingId(null); setEditText(''); return; }
+        try { await tasksRef().doc(id).update({ text: editText }); } catch(err){ console.error(err); }
+        setEditingId(null); setEditText('');
+      };
 
-    const undoDelete = () => {
-      if (!undoTimeout) return;
-
-      // Clear the deletion timeout
-      clearTimeout(undoTimeout);
-      setUndoTimeout(null);
-      setShowToast(false);
-      setDeletedTask(null);
-    };
-
-    // Hide the task being deleted from the list temporarily
-    const visibleTodos = deletedTask ? todos.filter(t => t.id !== deletedTask.id) : todos;
-    const startEdit = (todo) => { setEditingId(todo.id); setEditText(todo.text); };
-    const saveEdit = async (id) => {
-      if(!editText.trim()) { setEditingId(null); setEditText(''); return; }
-      try { await tasksRef().doc(id).update({ text: editText }); } catch(err){ console.error(err); }
-      setEditingId(null); setEditText('');
-    };
-    const clearCompleted = async () => {
-      const batch = firestore.batch();
-      const snapshot = await tasksRef().where('completed','==',true).get();
-      snapshot.forEach(doc => batch.delete(doc.ref));
-      await batch.commit();
-    };
-    const clearAll = async () => {
-      if(!confirm('Delete ALL tasks?')) return;
-      // caution: batched delete (Firestore limits 500 ops per batch)
-      const snapshot = await tasksRef().get();
-      const batch = firestore.batch();
-      snapshot.forEach(doc => batch.delete(doc.ref));
-      await batch.commit();
-    };
-
-    // Category management
-    const addCustomCategory = async () => {
-      const trimmed = newCategory.trim();
-      if (!trimmed) return;
-      if (allCategories.includes(trimmed)) {
-        alert('Category already exists!');
-        return;
-      }
-      try {
-        const newCategories = [...customCategories, trimmed];
-        await userDocRef().set({
-          customCategories: newCategories
-        }, { merge: true });
-        setNewCategory('');
-      } catch(err) {
-        console.error('Add category error:', err);
-        alert('Error adding category: ' + err.message);
-      }
-    };
-
-    const deleteCustomCategory = async (cat) => {
-      if (!confirm(`Delete category "${cat}"? Tasks with this category will keep it.`)) return;
-      try {
-        await userDocRef().set({
-          customCategories: customCategories.filter(c => c !== cat)
-        }, { merge: true });
-      } catch(err) {
-        console.error('Delete category error:', err);
-      }
-    };
-
-    // Drag and drop handlers
-    const handleDragStart = (e, id) => {
-      setDraggedId(id);
-      e.dataTransfer.effectAllowed = 'move';
-    };
-
-    const handleDragOver = (e, id) => {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = 'move';
-      if (draggedId !== id) {
-        setDragOverId(id);
-      }
-    };
-
-    const handleDragLeave = () => {
-      setDragOverId(null);
-    };
-
-    const handleDrop = async (e, targetId) => {
-      e.preventDefault();
-      setDragOverId(null);
-      
-      if (!draggedId || draggedId === targetId) {
-        setDraggedId(null);
-        return;
-      }
-
-      // Reorder the tasks
-      const draggedIndex = filtered.findIndex(t => t.id === draggedId);
-      const targetIndex = filtered.findIndex(t => t.id === targetId);
-      
-      if (draggedIndex === -1 || targetIndex === -1) return;
-
-      // Create new order
-      const newOrder = [...filtered];
-      const [removed] = newOrder.splice(draggedIndex, 1);
-      newOrder.splice(targetIndex, 0, removed);
-
-      // Update sortOrder in Firestore
-      const batch = firestore.batch();
-      newOrder.forEach((todo, index) => {
-        batch.update(tasksRef().doc(todo.id), { sortOrder: index });
-      });
-
-      try {
+      const clearCompleted = async () => {
+        const batch = firestore.batch();
+        const snapshot = await tasksRef().where('completed','==',true).get();
+        snapshot.forEach(doc => batch.delete(doc.ref));
         await batch.commit();
-      } catch (err) {
-        console.error('Reorder error:', err);
-      }
+      };
 
-      setDraggedId(null);
-    };
+      const clearAll = async () => {
+        if(!confirm('Delete ALL tasks?')) return;
+        const snapshot = await tasksRef().get();
+        const batch = firestore.batch();
+        snapshot.forEach(doc => batch.delete(doc.ref));
+        await batch.commit();
+      };
 
-    const handleDragEnd = () => {
-      setDraggedId(null);
-      setDragOverId(null);
-    };
+      const addCustomCategory = async () => {
+        const trimmed = newCategory.trim();
+        if (!trimmed) return;
+        if (allCategories.includes(trimmed)) {
+          alert('Category already exists!');
+          return;
+        }
+        try {
+          const newCategories = [...customCategories, trimmed];
+          await userDocRef().set({
+            customCategories: newCategories
+          }, { merge: true });
+          setNewCategory('');
+        } catch(err) {
+          console.error('Add category error:', err);
+          alert('Error adding category: ' + err.message);
+        }
+      };
 
-    const isOverdue = (d) => {
-      if(!d) return false;
-      const due = new Date(d.seconds ? d.seconds * 1000 : d);
-      const today = new Date();
-      return due < today && due.toDateString() !== today.toDateString();
-    };
+      const deleteCustomCategory = async (cat) => {
+        if (!confirm(`Delete category "${cat}"?`)) return;
+        try {
+          await userDocRef().set({
+            customCategories: customCategories.filter(c => c !== cat)
+          }, { merge: true });
+        } catch(err) {
+          console.error('Delete category error:', err);
+        }
+      };
 
-    const filtered = visibleTodos.filter(t => filter === 'active' ? !t.completed : filter === 'completed' ? t.completed : true);
+      const handleDragStart = (e, id) => {
+        setDraggedId(id);
+        e.dataTransfer.effectAllowed = 'move';
+      };
 
-    const activeCount = visibleTodos.filter(t => !t.completed).length;
-    const completedCount = visibleTodos.filter(t => t.completed).length;
+      const handleDragOver = (e, id) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        if (draggedId !== id) {
+          setDragOverId(id);
+        }
+      };
 
-    const signOut = () => auth.signOut();
+      const handleDragLeave = () => {
+        setDragOverId(null);
+      };
 
-    return React.createElement("div",{className:`min-h-screen ${darkMode ? 'bg-gradient-to-br from-gray-900 to-gray-800' : 'bg-gradient-to-br from-blue-50 to-indigo-100'} p-4 md:p-8`},
-      React.createElement("div",{className:`max-w-4xl mx-auto ${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-2xl shadow-xl p-6 md:p-8`},
-        React.createElement("div",{className:"flex items-center justify-between mb-4"},
-          React.createElement("div",{className:"flex items-center gap-3"}, 
-            React.createElement("h1",{className:`text-3xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`},"Get S**t Done!"),
-            React.createElement("button",{onClick:()=>setDarkMode(!darkMode),className:`p-2 rounded-lg ${darkMode ? 'bg-gray-700 text-yellow-400 hover:bg-gray-600' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'} transition-colors`},
-              darkMode ? React.createElement(Sun,{size:20}) : React.createElement(Moon,{size:20})
-            )
-          ),
-          React.createElement("div",{className:"text-right"},
-            React.createElement("div",{className:`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`},"Signed in as"),
-            React.createElement("div",{className:"flex items-center gap-2"},
-              React.createElement("div",{className:`${darkMode ? 'text-gray-300' : 'text-gray-700'} font-medium`}, user.email || user.displayName || user.uid.slice(0,6)),
-              React.createElement("button",{onClick:signOut, className:`ml-2 px-3 py-1 rounded border text-sm ${darkMode ? 'border-gray-600 text-gray-400 hover:bg-gray-700' : 'border-gray-300 text-gray-600 hover:bg-gray-50'}`},"Sign out")
-            )
-          )
-        ),
+      const handleDrop = async (e, targetId) => {
+        e.preventDefault();
+        setDragOverId(null);
+        
+        if (!draggedId || draggedId === targetId) {
+          setDraggedId(null);
+          return;
+        }
 
-        React.createElement("div",{className:`flex gap-4 text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'} mb-4`},
-          React.createElement("span",null,`${activeCount} active`),
-          React.createElement("span",null,"•"),
-          React.createElement("span",null,`${completedCount} completed`),
-          React.createElement("span",null,"•"),
-          React.createElement("span",null,`${todos.length} total`)
-        ),
+        const visibleTodos = deletedTask ? filtered.filter(t => t.id !== deletedTask.id) : filtered;
+        const draggedIndex = visibleTodos.findIndex(t => t.id === draggedId);
+        const targetIndex = visibleTodos.findIndex(t => t.id === targetId);
+        
+        if (draggedIndex === -1 || targetIndex === -1) return;
 
-        // Add new task panel
-        React.createElement("div",{className:`${darkMode ? 'bg-gray-700' : 'bg-gray-50'} rounded-xl p-4 mb-6 space-y-3`},
-          React.createElement("input",{type:"text",value:input,onChange:e=>setInput(e.target.value),onKeyDown:e=>{ if(e.key==='Enter') addTodo(); },placeholder:"Add a new task...",className:`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:border-indigo-500 transition-colors ${darkMode ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-500' : 'bg-white border-gray-200 placeholder-gray-400'}`}),
+        const newOrder = [...visibleTodos];
+        const [removed] = newOrder.splice(draggedIndex, 1);
+        newOrder.splice(targetIndex, 0, removed);
 
-          React.createElement("div",{className:"grid grid-cols-1 md:grid-cols-3 gap-3"},
-            React.createElement("div",null,
-              React.createElement("label",{className:`block text-xs font-medium ${darkMode ? 'text-gray-400' : 'text-gray-600'} mb-1`},"Category"),
-              React.createElement("div",{className:"flex gap-2"},
-                React.createElement("select",{value:category,onChange:e=>setCategory(e.target.value),className:`flex-1 px-3 py-2 border-2 rounded-lg focus:outline-none focus:border-indigo-500 ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-200'}`},
-                  React.createElement("option",{value:""},"Select..."),
-                  allCategories.map(cat => React.createElement("option",{key:cat,value:cat},cat))
-                ),
-                React.createElement("button",{onClick:()=>setShowCategoryModal(true),className:`px-3 py-2 rounded-lg ${darkMode ? 'bg-gray-600 hover:bg-gray-500 text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'}`,title:"Manage categories"},
-                  React.createElement(Settings,{size:18})
-                )
+        const batch = firestore.batch();
+        newOrder.forEach((todo, index) => {
+          batch.update(tasksRef().doc(todo.id), { sortOrder: index });
+        });
+
+        try {
+          await batch.commit();
+        } catch (err) {
+          console.error('Reorder error:', err);
+        }
+
+        setDraggedId(null);
+      };
+
+      const handleDragEnd = () => {
+        setDraggedId(null);
+        setDragOverId(null);
+      };
+
+      const isDueToday = (d) => {
+        if(!d) return false;
+        const due = new Date(d.seconds ? d.seconds * 1000 : d);
+        const today = new Date();
+        return due.toDateString() === today.toDateString();
+      };
+
+      const isDueTomorrow = (d) => {
+        if(!d) return false;
+        const due = new Date(d.seconds ? d.seconds * 1000 : d);
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        return due.toDateString() === tomorrow.toDateString();
+      };
+
+      const isOverdue = (d) => {
+        if(!d) return false;
+        const due = new Date(d.seconds ? d.seconds * 1000 : d);
+        const today = new Date();
+        return due < today && due.toDateString() !== today.toDateString();
+      };
+
+      const getDaysInMonth = (date) => {
+        const year = date.getFullYear();
+        const month = date.getMonth();
+        const firstDay = new Date(year, month, 1);
+        const lastDay = new Date(year, month + 1, 0);
+        const daysInMonth = lastDay.getDate();
+        const startingDayOfWeek = firstDay.getDay();
+        return { daysInMonth, startingDayOfWeek, year, month };
+      };
+
+      const getTasksForDate = (date) => {
+        return todos.filter(todo => {
+          if (!todo.dueDate) return false;
+          const dueDate = new Date(todo.dueDate.seconds ? todo.dueDate.seconds * 1000 : todo.dueDate);
+          return dueDate.toDateString() === date.toDateString();
+        });
+      };
+
+      const changeMonth = (offset) => {
+        const newDate = new Date(calendarDate);
+        newDate.setMonth(newDate.getMonth() + offset);
+        setCalendarDate(newDate);
+      };
+
+      const visibleTodos = deletedTask ? todos.filter(t => t.id !== deletedTask.id) : todos;
+      const filtered = visibleTodos.filter(t => filter === 'active' ? !t.completed : filter === 'completed' ? t.completed : true);
+      const activeCount = visibleTodos.filter(t => !t.completed).length;
+      const completedCount = visibleTodos.filter(t => t.completed).length;
+
+      return React.createElement("div",{className:`min-h-screen ${darkMode ? 'bg-gradient-to-br from-gray-900 to-gray-800' : 'bg-gradient-to-br from-blue-50 to-indigo-100'} p-4 md:p-8`},
+        React.createElement("div",{className:`max-w-4xl mx-auto ${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-2xl shadow-xl p-6 md:p-8`},
+          React.createElement("div",{className:"flex items-center justify-between mb-4"},
+            React.createElement("div",{className:"flex items-center gap-3"}, 
+              React.createElement("h1",{className:`text-3xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`},"Get S**t Done!"),
+              React.createElement("button",{onClick:()=>setDarkMode(!darkMode),className:`p-2 rounded-lg ${darkMode ? 'bg-gray-700 text-yellow-400 hover:bg-gray-600' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'} transition-colors`},
+                darkMode ? React.createElement(Sun,{size:20}) : React.createElement(Moon,{size:20})
               )
             ),
-            React.createElement("div",null,
-              React.createElement("label",{className:`block text-xs font-medium ${darkMode ? 'text-gray-400' : 'text-gray-600'} mb-1`},"Due Date"),
-              React.createElement("input",{type:"date",value:dueDate,onChange:e=>setDueDate(e.target.value),className:`w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:border-indigo-500 ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-200'}`})
-            ),
-            React.createElement("div",null,
-              React.createElement("label",{className:`block text-xs font-medium ${darkMode ? 'text-gray-400' : 'text-gray-600'} mb-1`},"Priority"),
-              React.createElement("select",{value:priority,onChange:e=>setPriority(e.target.value),className:`w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:border-indigo-500 ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-200'}`},
-                priorities.map(p => React.createElement("option",{key:p,value:p}, p.charAt(0).toUpperCase() + p.slice(1) ))
+            React.createElement("div",{className:"text-right"},
+              React.createElement("div",{className:`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`},"Signed in as"),
+              React.createElement("div",{className:"flex items-center gap-2"},
+                React.createElement("div",{className:`${darkMode ? 'text-gray-300' : 'text-gray-700'} font-medium`}, user.email || user.displayName || user.uid.slice(0,6)),
+                React.createElement("button",{onClick:()=>auth.signOut(), className:`ml-2 px-3 py-1 rounded border text-sm ${darkMode ? 'border-gray-600 text-gray-400 hover:bg-gray-700' : 'border-gray-300 text-gray-600 hover:bg-gray-50'}`},"Sign out")
               )
             )
           ),
 
-          React.createElement("div",{className:"flex gap-2"},
-            React.createElement("button",{onClick:addTodo,className:"flex-1 bg-indigo-500 hover:bg-indigo-600 text-white px-6 py-3 rounded-lg flex items-center justify-center gap-2 transition-colors"},
-              React.createElement(Plus,{size:18}),
-              "Add Task"
+          React.createElement("div",{className:`flex gap-4 text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'} mb-4`},
+            React.createElement("span",null,`${activeCount} active`),
+            React.createElement("span",null,"•"),
+            React.createElement("span",null,`${completedCount} completed`),
+            React.createElement("span",null,"•"),
+            React.createElement("span",null,`${visibleTodos.length} total`)
+          ),
+          
+          React.createElement("div",{className:"flex gap-2 mb-6"},
+            React.createElement("button",{onClick:()=>setViewMode('list'),className:`px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${viewMode === 'list' ? 'bg-indigo-500 text-white' : darkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`},
+              React.createElement(List,{size:18}),
+              "List View"
             ),
-            React.createElement("button",{onClick:clearCompleted,className:`px-4 py-2 rounded-lg ${darkMode ? 'bg-yellow-900 text-yellow-200 hover:bg-yellow-800' : 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'}`},"Clear Completed"),
-            React.createElement("button",{onClick:clearAll,className:`px-4 py-2 rounded-lg ${darkMode ? 'bg-red-900 text-red-200 hover:bg-red-800' : 'bg-red-100 text-red-700 hover:bg-red-200'}`},"Clear All")
-          )
-        ),
-
-        // Filters
-        React.createElement("div",{className:"flex gap-2 mb-6 flex-wrap"},
-          ['all','active','completed'].map(f =>
-            React.createElement("button",{key:f,onClick:()=>setFilter(f),className:`px-4 py-2 rounded-lg transition-colors ${filter===f ? 'bg-indigo-500 text-white' : darkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`},
-              f.charAt(0).toUpperCase() + f.slice(1),
-              ' ',
-              f==='all'?`(${visibleTodos.length})` : f==='active'? `(${activeCount})` : `(${completedCount})`
+            React.createElement("button",{onClick:()=>setViewMode('calendar'),className:`px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${viewMode === 'calendar' ? 'bg-indigo-500 text-white' : darkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`},
+              React.createElement(CalendarIcon,{size:18}),
+              "Calendar View"
             )
-          )
-        ),
+          ),
 
-        // Task list
-        loading ? React.createElement("div",{className:`p-6 text-center ${darkMode ? 'text-gray-500' : 'text-gray-400'}`},"Loading tasks...") :
-        React.createElement("div",{className:"space-y-2"},
-          filtered.length === 0 ? React.createElement("p",{className:`text-center ${darkMode ? 'text-gray-500' : 'text-gray-400'} py-12`}, filter === 'all' ? 'No tasks yet. Add one to get started!' : `No ${filter} tasks.`) :
-          filtered.map(todo => React.createElement("div",{
-            key:todo.id,
-            draggable:true,
-            onDragStart:(e)=>handleDragStart(e, todo.id),
-            onDragOver:(e)=>handleDragOver(e, todo.id),
-            onDragLeave:handleDragLeave,
-            onDrop:(e)=>handleDrop(e, todo.id),
-            onDragEnd:handleDragEnd,
-            className:`p-4 rounded-lg transition-colors group cursor-move ${draggedId === todo.id ? 'dragging' : ''} ${dragOverId === todo.id ? 'drag-over' : ''} ${darkMode ? 'bg-gray-700 hover:bg-gray-650' : 'bg-gray-50 hover:bg-gray-100'}`
-          },
-            React.createElement("div",{className:"flex items-start gap-3"},
-              React.createElement("div",{className:`flex-shrink-0 ${darkMode ? 'text-gray-500' : 'text-gray-400'} cursor-grab active:cursor-grabbing mt-1`},
-                React.createElement(GripVertical,{size:20})
+          viewMode === 'calendar' ? React.createElement("div",null,
+            React.createElement("div",{className:"flex items-center justify-between mb-4"},
+              React.createElement("button",{onClick:()=>changeMonth(-1),className:`p-2 rounded-lg ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`},
+                React.createElement(ChevronLeft,{size:20})
               ),
-              React.createElement("button",{onClick:()=>toggleTodo(todo.id, todo.completed),className:`flex-shrink-0 w-6 h-6 rounded border-2 flex items-center justify-center transition-all mt-1 ${todo.completed ? 'bg-indigo-500 border-indigo-500' : darkMode ? 'border-gray-500 hover:border-indigo-400' : 'border-gray-300 hover:border-indigo-400'}`},
-                todo.completed && React.createElement(Check,{size:16})
+              React.createElement("h3",{className:`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`},
+                calendarDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
               ),
-              React.createElement("div",{className:"flex-1 min-w-0"},
-                editingId === todo.id ? React.createElement("div",{className:"flex gap-2"},
-                  React.createElement("input",{type:"text",value:editText,onChange:e=>setEditText(e.target.value),onKeyDown:e=>e.key==='Enter'&&saveEdit(todo.id),className:`flex-1 px-3 py-1 border-2 border-indigo-500 rounded focus:outline-none ${darkMode ? 'bg-gray-800 text-white' : 'bg-white'}`,autoFocus:true}),
-                  React.createElement("button",{onClick:()=>saveEdit(todo.id),className:"text-green-600 hover:text-green-700"}, React.createElement(Check,{size:18}) ),
-                  React.createElement("button",{onClick:()=>{ setEditingId(null); setEditText(''); }, className:"text-red-600 hover:text-red-700"}, React.createElement(X,{size:18}) )
-                ) :
-                React.createElement(React.Fragment,null,
-                  React.createElement("div",{className:"flex items-start justify-between gap-2"},
-                    React.createElement("span",{className:`break-words ${todo.completed ? darkMode ? 'line-through text-gray-500' : 'line-through text-gray-400' : darkMode ? 'text-gray-200' : 'text-gray-700'}`}, todo.text),
-                    React.createElement("div",{className:"flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"},
-                      React.createElement("button",{onClick:()=>startEdit(todo),className:"text-blue-500 hover:text-blue-600"}, React.createElement(Edit2,{size:16}) ),
-                      React.createElement("button",{onClick:()=>deleteTodo(todo.id),className:"text-red-500 hover:text-red-600"}, React.createElement(Trash2,{size:16}) )
+              React.createElement("button",{onClick:()=>changeMonth(1),className:`p-2 rounded-lg ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`},
+                React.createElement(ChevronRight,{size:20})
+              )
+            ),
+            
+            React.createElement("div",{className:`grid grid-cols-7 gap-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`},
+              ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day =>
+                React.createElement("div",{key:day,className:`text-center font-semibold text-sm py-2 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}, day)
+              ),
+              
+              (() => {
+                const { daysInMonth, startingDayOfWeek, year, month } = getDaysInMonth(calendarDate);
+                const days = [];
+                
+                for (let i = 0; i < startingDayOfWeek; i++) {
+                  days.push(React.createElement("div",{key:`empty-${i}`,className:`p-2 min-h-24 ${darkMode ? 'bg-gray-800' : 'bg-gray-50'} rounded-lg`}));
+                }
+                
+                for (let day = 1; day <= daysInMonth; day++) {
+                  const date = new Date(year, month, day);
+                  const tasksForDay = getTasksForDate(date);
+                  const isToday = date.toDateString() === new Date().toDateString();
+                  
+                  days.push(
+                    React.createElement("div",{
+                      key:day,
+                      className:`p-2 min-h-24 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-white'} border-2 ${isToday ? 'border-indigo-500' : darkMode ? 'border-gray-600' : 'border-gray-200'} overflow-hidden`
+                    },
+                      React.createElement("div",{className:`text-sm font-semibold mb-1 ${isToday ? 'text-indigo-500' : ''}`}, day),
+                      React.createElement("div",{className:"space-y-1"},
+                        tasksForDay.slice(0, 3).map(task => 
+                          React.createElement("div",{
+                            key:task.id,
+                            className:`text-xs p-1 rounded truncate ${task.completed ? darkMode ? 'bg-gray-600 text-gray-400 line-through' : 'bg-gray-100 text-gray-400 line-through' : task.priority === 'high' ? darkMode ? 'bg-red-900 text-red-200' : 'bg-red-100 text-red-700' : task.priority === 'medium' ? darkMode ? 'bg-yellow-900 text-yellow-200' : 'bg-yellow-100 text-yellow-700' : darkMode ? 'bg-green-900 text-green-200' : 'bg-green-100 text-green-700'}`,
+                            title:task.text
+                          }, task.text)
+                        ),
+                        tasksForDay.length > 3 && React.createElement("div",{className:`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}, `+${tasksForDay.length - 3} more`)
+                      )
                     )
-                  ),
+                  );
+                }
+                
+                return days;
+              })()
+            )
+          ) : React.createElement("div",null,
+            React.createElement("div",{className:`${darkMode ? 'bg-gray-700' : 'bg-gray-50'} rounded-xl p-4 mb-6 space-y-3`},
+              React.createElement("input",{type:"text",value:input,onChange:e=>setInput(e.target.value),onKeyDown:e=>{ if(e.key==='Enter') addTodo(); },placeholder:"Add a new task...",className:`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:border-indigo-500 transition-colors ${darkMode ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-500' : 'bg-white border-gray-200 placeholder-gray-400'}`}),
 
-                  // tags row
-                  React.createElement("div",{className:"flex flex-wrap gap-2 mt-2"},
-                    React.createElement("span",{className:`inline-flex items-center gap-1 px-2 py-1 rounded text-xs border ${ todo.priority === 'high' ? darkMode ? 'text-red-400 bg-red-900 border-red-700' : 'text-red-600 bg-red-50 border-red-200' : todo.priority === 'medium' ? darkMode ? 'text-yellow-400 bg-yellow-900 border-yellow-700' : 'text-yellow-600 bg-yellow-50 border-yellow-200' : darkMode ? 'text-green-400 bg-green-900 border-green-700' : 'text-green-600 bg-green-50 border-green-200' }`},
-                      React.createElement(AlertCircle,{size:12}),
-                      todo.priority
+              React.createElement("div",{className:"grid grid-cols-1 md:grid-cols-3 gap-3"},
+                React.createElement("div",null,
+                  React.createElement("label",{className:`block text-xs font-medium ${darkMode ? 'text-gray-400' : 'text-gray-600'} mb-1`},"Category"),
+                  React.createElement("div",{className:"flex gap-2"},
+                    React.createElement("select",{value:category,onChange:e=>setCategory(e.target.value),className:`flex-1 px-3 py-2 border-2 rounded-lg focus:outline-none focus:border-indigo-500 ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-200'}`},
+                      React.createElement("option",{value:""},"Select..."),
+                      allCategories.map(cat => React.createElement("option",{key:cat,value:cat},cat))
                     ),
-                    React.createElement("span",{className:`inline-flex items-center gap-1 px-2 py-1 rounded text-xs border ${darkMode ? 'bg-purple-900 text-purple-300 border-purple-700' : 'bg-purple-50 text-purple-600 border-purple-200'}`},
-                      React.createElement(Tag,{size:12}),
-                      todo.category || 'Other'
-                    ),
-                    todo.dueDate ? React.createElement("span",{className:`inline-flex items-center gap-1 px-2 py-1 rounded text-xs border ${ isOverdue(todo.dueDate) && !todo.completed ? darkMode ? 'bg-red-900 text-red-300 border-red-700' : 'bg-red-50 text-red-600 border-red-200' : darkMode ? 'bg-blue-900 text-blue-300 border-blue-700' : 'bg-blue-50 text-blue-600 border-blue-200' }`},
-                      React.createElement(Calendar,{size:12}),
-                      (todo.dueDate && todo.dueDate.seconds) ? new Date(todo.dueDate.seconds*1000).toLocaleDateString() : (typeof todo.dueDate === 'string' ? formatDate(todo.dueDate) : String(todo.dueDate)),
-                      isOverdue(todo.dueDate) && !todo.completed ? ' (Overdue)' : null
-                    ) : null
+                    React.createElement("button",{onClick:()=>setShowCategoryModal(true),className:`px-3 py-2 rounded-lg ${darkMode ? 'bg-gray-600 hover:bg-gray-500 text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'}`,title:"Manage categories"},
+                      React.createElement(Settings,{size:18})
+                    )
+                  )
+                ),
+                React.createElement("div",null,
+                  React.createElement("label",{className:`block text-xs font-medium ${darkMode ? 'text-gray-400' : 'text-gray-600'} mb-1`},"Due Date"),
+                  React.createElement("input",{type:"date",value:dueDate,onChange:e=>setDueDate(e.target.value),className:`w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:border-indigo-500 ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-200'}`})
+                ),
+                React.createElement("div",null,
+                  React.createElement("label",{className:`block text-xs font-medium ${darkMode ? 'text-gray-400' : 'text-gray-600'} mb-1`},"Priority"),
+                  React.createElement("select",{value:priority,onChange:e=>setPriority(e.target.value),className:`w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:border-indigo-500 ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-200'}`},
+                    priorities.map(p => React.createElement("option",{key:p,value:p}, p.charAt(0).toUpperCase() + p.slice(1) ))
                   )
                 )
-              )
-            )
-          ))
-        ),
+              ),
 
-        // Category Management Modal
-        showCategoryModal && React.createElement("div",{className:"fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50",onClick:()=>setShowCategoryModal(false)},
-          React.createElement("div",{className:`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-2xl p-6 max-w-md w-full shadow-2xl`,onClick:e=>e.stopPropagation()},
-            React.createElement("div",{className:"flex items-center justify-between mb-4"},
-              React.createElement("h3",{className:`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`},"Manage Categories"),
-              React.createElement("button",{onClick:()=>setShowCategoryModal(false),className:`p-1 rounded ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`},
-                React.createElement(X,{size:20})
+              React.createElement("div",{className:"flex gap-2"},
+                React.createElement("button",{onClick:addTodo,className:"flex-1 bg-indigo-500 hover:bg-indigo-600 text-white px-6 py-3 rounded-lg flex items-center justify-center gap-2 transition-colors"},
+                  React.createElement(Plus,{size:18}),
+                  "Add Task"
+                ),
+                React.createElement("button",{onClick:clearCompleted,className:`px-4 py-2 rounded-lg ${darkMode ? 'bg-yellow-900 text-yellow-200 hover:bg-yellow-800' : 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'}`},"Clear Completed"),
+                React.createElement("button",{onClick:clearAll,className:`px-4 py-2 rounded-lg ${darkMode ? 'bg-red-900 text-red-200 hover:bg-red-800' : 'bg-red-100 text-red-700 hover:bg-red-200'}`},"Clear All")
               )
             ),
 
-            React.createElement("div",{className:"mb-4"},
-              React.createElement("label",{className:`block text-sm font-medium ${darkMode ? 'text-gray-400' : 'text-gray-600'} mb-2`},"Add New Category"),
-              React.createElement("div",{className:"flex gap-2"},
-                React.createElement("input",{type:"text",value:newCategory,onChange:e=>setNewCategory(e.target.value),onKeyDown:e=>{ if(e.key==='Enter') addCustomCategory(); },placeholder:"Enter category name...",className:`flex-1 px-3 py-2 border-2 rounded-lg focus:outline-none focus:border-indigo-500 ${darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-500' : 'bg-white border-gray-200 placeholder-gray-400'}`}),
-                React.createElement("button",{onClick:addCustomCategory,className:"px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg flex items-center gap-1"},
-                  React.createElement(Plus,{size:16}),
-                  "Add"
+            React.createElement("div",{className:"flex gap-2 mb-6 flex-wrap"},
+              ['all','active','completed'].map(f =>
+                React.createElement("button",{key:f,onClick:()=>setFilter(f),className:`px-4 py-2 rounded-lg transition-colors ${filter===f ? 'bg-indigo-500 text-white' : darkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`},
+                  f.charAt(0).toUpperCase() + f.slice(1),
+                  ' ',
+                  f==='all'?`(${visibleTodos.length})` : f==='active'? `(${activeCount})` : `(${completedCount})`
                 )
               )
             ),
 
             React.createElement("div",{className:"space-y-2"},
-              React.createElement("label",{className:`block text-sm font-medium ${darkMode ? 'text-gray-400' : 'text-gray-600'} mb-2`},"Your Categories"),
-              React.createElement("div",{className:"space-y-1 max-h-64 overflow-y-auto"},
-                defaultCategories.map(cat => 
-                  React.createElement("div",{key:cat,className:`flex items-center justify-between p-2 rounded ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`},
-                    React.createElement("span",{className:darkMode ? 'text-gray-300' : 'text-gray-700'},cat),
-                    React.createElement("span",{className:`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-400'}`},"Default")
-                  )
-                ),
-                customCategories.length === 0 ? 
-                  React.createElement("p",{className:`text-sm ${darkMode ? 'text-gray-500' : 'text-gray-400'} italic py-4 text-center`},"No custom categories yet") :
-                  customCategories.map(cat => 
-                    React.createElement("div",{key:cat,className:`flex items-center justify-between p-2 rounded ${darkMode ? 'bg-gray-700 hover:bg-gray-650' : 'bg-gray-100 hover:bg-gray-200'}`},
-                      React.createElement("span",{className:darkMode ? 'text-gray-200' : 'text-gray-700'},cat),
-                      React.createElement("button",{onClick:()=>deleteCustomCategory(cat),className:"text-red-500 hover:text-red-600 p-1"},
-                        React.createElement(Trash2,{size:16})
+              filtered.length === 0 ? React.createElement("p",{className:`text-center ${darkMode ? 'text-gray-500' : 'text-gray-400'} py-12`}, filter === 'all' ? 'No tasks yet. Add one to get started!' : `No ${filter} tasks.`) :
+              filtered.map(todo => {
+                const priorityBorderColor = todo.priority === 'high' ? 'border-l-red-500' : todo.priority === 'medium' ? 'border-l-yellow-500' : 'border-l-green-500';
+                const dueToday = isDueToday(todo.dueDate) && !todo.completed;
+                const dueTomorrow = isDueTomorrow(todo.dueDate) && !todo.completed;
+                const overdueTask = isOverdue(todo.dueDate) && !todo.completed;
+                
+                let cardBgClass = darkMode ? 'bg-gray-700 hover:bg-gray-650' : 'bg-gray-50 hover:bg-gray-100';
+                if (overdueTask) {
+                  cardBgClass = darkMode ? 'bg-red-950 hover:bg-red-900 border-2 border-red-800' : 'bg-red-50 hover:bg-red-100 border-2 border-red-200';
+                } else if (dueToday) {
+                  cardBgClass = darkMode ? 'bg-orange-950 hover:bg-orange-900 border-2 border-orange-800' : 'bg-orange-50 hover:bg-orange-100 border-2 border-orange-200';
+                } else if (dueTomorrow) {
+                  cardBgClass = darkMode ? 'bg-yellow-950 hover:bg-yellow-900 border-2 border-yellow-800' : 'bg-yellow-50 hover:bg-yellow-100 border-2 border-yellow-200';
+                }
+                
+                return React.createElement("div",{
+                  key:todo.id,
+                  draggable:true,
+                  onDragStart:(e)=>handleDragStart(e, todo.id),
+                  onDragOver:(e)=>handleDragOver(e, todo.id),
+                  onDragLeave:handleDragLeave,
+                  onDrop:(e)=>handleDrop(e, todo.id),
+                  onDragEnd:handleDragEnd,
+                  className:`p-4 rounded-lg transition-colors group cursor-move border-l-4 ${priorityBorderColor} ${cardBgClass} ${draggedId === todo.id ? 'dragging' : ''} ${dragOverId === todo.id ? 'drag-over' : ''}`
+                },
+                  React.createElement("div",{className:"flex items-start gap-3"},
+                    React.createElement("div",{className:`flex-shrink-0 ${darkMode ? 'text-gray-500' : 'text-gray-400'} cursor-grab active:cursor-grabbing mt-1`},
+                      React.createElement(GripVertical,{size:20})
+                    ),
+                    React.createElement("button",{onClick:()=>toggleTodo(todo.id, todo.completed),className:`flex-shrink-0 w-6 h-6 rounded border-2 flex items-center justify-center transition-all mt-1 ${todo.completed ? 'bg-indigo-500 border-indigo-500' : darkMode ? 'border-gray-500 hover:border-indigo-400' : 'border-gray-300 hover:border-indigo-400'}`},
+                      todo.completed && React.createElement(Check,{size:16})
+                    ),
+                    React.createElement("div",{className:"flex-1 min-w-0"},
+                      editingId === todo.id ? React.createElement("div",{className:"flex gap-2"},
+                        React.createElement("input",{type:"text",value:editText,onChange:e=>setEditText(e.target.value),onKeyDown:e=>e.key==='Enter'&&saveEdit(todo.id),className:`flex-1 px-3 py-1 border-2 border-indigo-500 rounded focus:outline-none ${darkMode ? 'bg-gray-800 text-white' : 'bg-white'}`,autoFocus:true}),
+                        React.createElement("button",{onClick:()=>saveEdit(todo.id),className:"text-green-600 hover:text-green-700"}, React.createElement(Check,{size:18}) ),
+                        React.createElement("button",{onClick:()=>{ setEditingId(null); setEditText(''); }, className:"text-red-600 hover:text-red-700"}, React.createElement(X,{size:18}) )
+                      ) :
+                      React.createElement(React.Fragment,null,
+                        React.createElement("div",{className:"flex items-start justify-between gap-2"},
+                          React.createElement("span",{className:`break-words ${todo.completed ? darkMode ? 'line-through text-gray-500' : 'line-through text-gray-400' : darkMode ? 'text-gray-200' : 'text-gray-700'}`}, todo.text),
+                          React.createElement("div",{className:"flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"},
+                            React.createElement("button",{onClick:()=>startEdit(todo),className:"text-blue-500 hover:text-blue-600"}, React.createElement(Edit2,{size:16}) ),
+                            React.createElement("button",{onClick:()=>deleteTodo(todo.id),className:"text-red-500 hover:text-red-600"}, React.createElement(Trash2,{size:16}) )
+                          )
+                        ),
+
+                        React.createElement("div",{className:"flex flex-wrap gap-2 mt-2"},
+                          React.createElement("span",{className:`inline-flex items-center gap-1 px-2 py-1 rounded text-xs border ${ todo.priority === 'high' ? darkMode ? 'text-red-400 bg-red-900 border-red-700' : 'text-red-600 bg-red-50 border-red-200' : todo.priority === 'medium' ? darkMode ? 'text-yellow-400 bg-yellow-900 border-yellow-700' : 'text-yellow-600 bg-yellow-50 border-yellow-200' : darkMode ? 'text-green-400 bg-green-900 border-green-700' : 'text-green-600 bg-green-50 border-green-200' }`},
+                            React.createElement(AlertCircle,{size:12}),
+                            todo.priority
+                          ),
+                          React.createElement("span",{className:`inline-flex items-center gap-1 px-2 py-1 rounded text-xs border ${darkMode ? 'bg-purple-900 text-purple-300 border-purple-700' : 'bg-purple-50 text-purple-600 border-purple-200'}`},
+                            React.createElement(Tag,{size:12}),
+                            todo.category || 'Other'
+                          ),
+                          todo.dueDate ? React.createElement("span",{className:`inline-flex items-center gap-1 px-2 py-1 rounded text-xs border ${ overdueTask ? darkMode ? 'bg-red-900 text-red-200 border-red-700 font-semibold' : 'bg-red-100 text-red-700 border-red-300 font-semibold' : dueToday ? darkMode ? 'bg-orange-900 text-orange-200 border-orange-700 font-semibold' : 'bg-orange-100 text-orange-700 border-orange-300 font-semibold' : dueTomorrow ? darkMode ? 'bg-yellow-900 text-yellow-200 border-yellow-700 font-semibold' : 'bg-yellow-100 text-yellow-700 border-yellow-300 font-semibold' : darkMode ? 'bg-blue-900 text-blue-300 border-blue-700' : 'bg-blue-50 text-blue-600 border-blue-200' }`},
+                            React.createElement(Calendar,{size:12}),
+                            (todo.dueDate && todo.dueDate.seconds) ? new Date(todo.dueDate.seconds*1000).toLocaleDateString() : (typeof todo.dueDate === 'string' ? formatDate(todo.dueDate) : String(todo.dueDate)),
+                            overdueTask ? ' (Overdue!)' : dueToday ? ' (Today!)' : dueTomorrow ? ' (Tomorrow)' : null
+                          ) : null
+                        )
                       )
                     )
                   )
-              )
-            ),
+                );
+              })
+            )
+          ),
 
-            React.createElement("div",{className:"mt-6 flex justify-end"},
-              React.createElement("button",{onClick:()=>setShowCategoryModal(false),className:`px-4 py-2 rounded-lg ${darkMode ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'}`},"Done")
+          showCategoryModal && React.createElement("div",{className:"fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50",onClick:()=>setShowCategoryModal(false)},
+            React.createElement("div",{className:`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-2xl p-6 max-w-md w-full shadow-2xl`,onClick:e=>e.stopPropagation()},
+              React.createElement("div",{className:"flex items-center justify-between mb-4"},
+                React.createElement("h3",{className:`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`},"Manage Categories"),
+                React.createElement("button",{onClick:()=>setShowCategoryModal(false),className:`p-1 rounded ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`},
+                  React.createElement(X,{size:20})
+                )
+              ),
+
+              React.createElement("div",{className:"mb-4"},
+                React.createElement("label",{className:`block text-sm font-medium ${darkMode ? 'text-gray-400' : 'text-gray-600'} mb-2`},"Add New Category"),
+                React.createElement("div",{className:"flex gap-2"},
+                  React.createElement("input",{type:"text",value:newCategory,onChange:e=>setNewCategory(e.target.value),onKeyDown:e=>{ if(e.key==='Enter') addCustomCategory(); },placeholder:"Enter category name...",className:`flex-1 px-3 py-2 border-2 rounded-lg focus:outline-none focus:border-indigo-500 ${darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-500' : 'bg-white border-gray-200 placeholder-gray-400'}`}),
+                  React.createElement("button",{onClick:addCustomCategory,className:"px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg flex items-center gap-1"},
+                    React.createElement(Plus,{size:16}),
+                    "Add"
+                  )
+                )
+              ),
+
+              React.createElement("div",{className:"space-y-2"},
+                React.createElement("label",{className:`block text-sm font-medium ${darkMode ? 'text-gray-400' : 'text-gray-600'} mb-2`},"Your Categories"),
+                React.createElement("div",{className:"space-y-1 max-h-64 overflow-y-auto"},
+                  defaultCategories.map(cat => 
+                    React.createElement("div",{key:cat,className:`flex items-center justify-between p-2 rounded ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`},
+                      React.createElement("span",{className:darkMode ? 'text-gray-300' : 'text-gray-700'},cat),
+                      React.createElement("span",{className:`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-400'}`},"Default")
+                    )
+                  ),
+                  customCategories.length === 0 ? 
+                    React.createElement("p",{className:`text-sm ${darkMode ? 'text-gray-500' : 'text-gray-400'} italic py-4 text-center`},"No custom categories yet") :
+                    customCategories.map(cat => 
+                      React.createElement("div",{key:cat,className:`flex items-center justify-between p-2 rounded ${darkMode ? 'bg-gray-700 hover:bg-gray-650' : 'bg-gray-100 hover:bg-gray-200'}`},
+                        React.createElement("span",{className:darkMode ? 'text-gray-200' : 'text-gray-700'},cat),
+                        React.createElement("button",{onClick:()=>deleteCustomCategory(cat),className:"text-red-500 hover:text-red-600 p-1"},
+                          React.createElement(Trash2,{size:16})
+                        )
+                      )
+                    )
+                )
+              ),
+
+              React.createElement("div",{className:"mt-6 flex justify-end"},
+                React.createElement("button",{onClick:()=>setShowCategoryModal(false),className:`px-4 py-2 rounded-lg ${darkMode ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'}`},"Done")
+              )
+            )
+          ),
+
+          showToast && deletedTask && React.createElement("div",{className:"fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50 animate-slide-up"},
+            React.createElement("div",{className:`${darkMode ? 'bg-gray-700 border border-gray-600' : 'bg-gray-900'} text-white px-6 py-4 rounded-xl shadow-2xl flex items-center gap-4 min-w-96`},
+              React.createElement("div",{className:"flex items-center gap-3 flex-1"},
+                React.createElement(Trash2,{size:20}),
+                React.createElement("div",null,
+                  React.createElement("div",{className:"font-medium"},"Task deleted"),
+                  React.createElement("div",{className:"text-sm text-gray-300 truncate max-w-xs"},deletedTask.text)
+                )
+              ),
+              React.createElement("button",{onClick:undoDelete,className:"px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg font-medium transition-colors"},"Undo")
             )
           )
-        ),
-
-        // Toast Notification for Undo Delete
-        showToast && deletedTask && React.createElement("div",{className:"fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50 animate-slide-up"},
-          React.createElement("div",{className:`${darkMode ? 'bg-gray-700 border border-gray-600' : 'bg-gray-900'} text-white px-6 py-4 rounded-xl shadow-2xl flex items-center gap-4 min-w-96`},
-            React.createElement("div",{className:"flex items-center gap-3 flex-1"},
-              React.createElement(Trash2,{size:20}),
-              React.createElement("div",null,
-                React.createElement("div",{className:"font-medium"},"Task deleted"),
-                React.createElement("div",{className:"text-sm text-gray-300 truncate max-w-xs"},deletedTask.text)
-              )
-            ),
-            React.createElement("button",{onClick:undoDelete,className:"px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg font-medium transition-colors"},"Undo")
-          )
         )
-      )
-    );
-  }
-
-  // Mount app
-  const root = ReactDOM.createRoot(document.getElementById('root'));
-  root.render(React.createElement(App));
-  </script>
-
-  <!-- Optional: service worker registration for caching static assets (create service-worker.js separately) -->
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('service-worker.js').catch(e => {
-          // console.warn('SW failed', e);
-        });
-      });
+      );
     }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(React.createElement(App));
   </script>
 </body>
 </html>
