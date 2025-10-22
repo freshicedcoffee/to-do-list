@@ -179,7 +179,7 @@
       const [showToast, setShowToast] = useState(false);
       const [undoTimeout, setUndoTimeout] = useState(null);
       
-      const defaultCategories = ['Work','Personal','Shopping'];
+      const defaultCategories = ['Work','Personal','Shopping','Health','Other'];
       const allCategories = [...defaultCategories, ...customCategories];
       const priorities = ['low','medium','high'];
       
@@ -462,23 +462,23 @@
 
       return React.createElement("div",{className:`min-h-screen ${darkMode ? 'bg-gradient-to-br from-gray-900 to-gray-800' : 'bg-gradient-to-br from-blue-50 to-indigo-100'} p-4 md:p-8`},
         React.createElement("div",{className:`max-w-4xl mx-auto ${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-2xl shadow-xl p-6 md:p-8`},
-          React.createElement("div",{className:"flex items-center justify-between mb-4"},
-            React.createElement("div",{className:"flex items-center gap-3"}, 
-              React.createElement("h1",{className:`text-3xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`},"Get S**t Done!"),
+          React.createElement("div",{className:"flex flex-col gap-3 mb-4"},
+            React.createElement("div",{className:"flex items-center justify-between"},
+              React.createElement("h1",{className:`text-2xl md:text-3xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`},"Get S**t Done!"),
               React.createElement("button",{onClick:()=>setDarkMode(!darkMode),className:`p-2 rounded-lg ${darkMode ? 'bg-gray-700 text-yellow-400 hover:bg-gray-600' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'} transition-colors`},
                 darkMode ? React.createElement(Sun,{size:20}) : React.createElement(Moon,{size:20})
               )
             ),
-            React.createElement("div",{className:"text-right"},
-              React.createElement("div",{className:`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`},"Signed in as"),
-              React.createElement("div",{className:"flex items-center gap-2"},
-                React.createElement("div",{className:`${darkMode ? 'text-gray-300' : 'text-gray-700'} font-medium`}, user.email || user.displayName || user.uid.slice(0,6)),
-                React.createElement("button",{onClick:()=>auth.signOut(), className:`ml-2 px-3 py-1 rounded border text-sm ${darkMode ? 'border-gray-600 text-gray-400 hover:bg-gray-700' : 'border-gray-300 text-gray-600 hover:bg-gray-50'}`},"Sign out")
-              )
+            React.createElement("div",{className:"flex items-center justify-between"},
+              React.createElement("div",{className:"flex flex-col"},
+                React.createElement("div",{className:`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`},"Signed in as"),
+                React.createElement("div",{className:`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-700'} font-medium truncate max-w-[180px] sm:max-w-none`}, user.email || user.displayName || user.uid.slice(0,6))
+              ),
+              React.createElement("button",{onClick:()=>auth.signOut(), className:`px-3 py-1 rounded border text-sm ${darkMode ? 'border-gray-600 text-gray-400 hover:bg-gray-700' : 'border-gray-300 text-gray-600 hover:bg-gray-50'}`},"Sign out")
             )
           ),
 
-          React.createElement("div",{className:`flex gap-4 text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'} mb-4`},
+          React.createElement("div",{className:`flex flex-wrap gap-2 text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'} mb-4`},
             React.createElement("span",null,`${activeCount} active`),
             React.createElement("span",null,"•"),
             React.createElement("span",null,`${completedCount} completed`),
@@ -486,12 +486,12 @@
             React.createElement("span",null,`${visibleTodos.length} total`)
           ),
           
-          React.createElement("div",{className:"flex gap-2 mb-6"},
-            React.createElement("button",{onClick:()=>setViewMode('list'),className:`px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${viewMode === 'list' ? 'bg-indigo-500 text-white' : darkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`},
+          React.createElement("div",{className:"flex flex-col sm:flex-row gap-2 mb-6"},
+            React.createElement("button",{onClick:()=>setViewMode('list'),className:`px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-colors ${viewMode === 'list' ? 'bg-indigo-500 text-white' : darkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`},
               React.createElement(List,{size:18}),
               "List View"
             ),
-            React.createElement("button",{onClick:()=>setViewMode('calendar'),className:`px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${viewMode === 'calendar' ? 'bg-indigo-500 text-white' : darkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`},
+            React.createElement("button",{onClick:()=>setViewMode('calendar'),className:`px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-colors ${viewMode === 'calendar' ? 'bg-indigo-500 text-white' : darkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`},
               React.createElement(CalendarIcon,{size:18}),
               "Calendar View"
             )
@@ -570,7 +570,7 @@
                 ),
                 React.createElement("div",null,
                   React.createElement("label",{className:`block text-xs font-medium ${darkMode ? 'text-gray-400' : 'text-gray-600'} mb-1`},"Due Date"),
-                  React.createElement("input",{type:"date",value:dueDate,onChange:e=>setDueDate(e.target.value),className:`w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:border-indigo-500 ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-200'}`})
+                  React.createElement("input",{type:"date",value:dueDate,onChange:e=>setDueDate(e.target.value),className:`w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:border-indigo-500 max-w-full ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-200'}`})
                 ),
                 React.createElement("div",null,
                   React.createElement("label",{className:`block text-xs font-medium ${darkMode ? 'text-gray-400' : 'text-gray-600'} mb-1`},"Priority"),
@@ -580,12 +580,12 @@
                 )
               ),
 
-              React.createElement("div",{className:"flex gap-2"},
+              React.createElement("div",{className:"flex flex-col sm:flex-row gap-2"},
                 React.createElement("button",{onClick:addTodo,className:"flex-1 bg-indigo-500 hover:bg-indigo-600 text-white px-6 py-3 rounded-lg flex items-center justify-center gap-2 transition-colors"},
                   React.createElement(Plus,{size:18}),
                   "Add Task"
                 ),
-                React.createElement("button",{onClick:clearCompleted,className:`px-4 py-2 rounded-lg ${darkMode ? 'bg-yellow-900 text-yellow-200 hover:bg-yellow-800' : 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'}`},"Clear Completed"),
+                React.createElement("button",{onClick:clearCompleted,className:`px-4 py-2 rounded-lg whitespace-nowrap ${darkMode ? 'bg-yellow-900 text-yellow-200 hover:bg-yellow-800' : 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'}`},"Clear Completed"),
                 React.createElement("button",{onClick:clearAll,className:`px-4 py-2 rounded-lg ${darkMode ? 'bg-red-900 text-red-200 hover:bg-red-800' : 'bg-red-100 text-red-700 hover:bg-red-200'}`},"Clear All")
               )
             ),
