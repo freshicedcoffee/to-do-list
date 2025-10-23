@@ -352,21 +352,41 @@
       const startRecording = async () => {
         try {
           const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-          mediaRecorderRef.current = new MediaRecorder(stream);
+          
+          // Try to use a compatible format
+          let options = { mimeType: 'audio/webm' };
+          if (!MediaRecorder.isTypeSupported('audio/webm')) {
+            options = { mimeType: 'audio/mp4' };
+            if (!MediaRecorder.isTypeSupported('audio/mp4')) {
+              options = {}; // Use default
+            }
+          }
+          
+          mediaRecorderRef.current = new MediaRecorder(stream, options);
           audioChunksRef.current = [];
 
           mediaRecorderRef.current.ondataavailable = (event) => {
-            audioChunksRef.current.push(event.data);
+            if (event.data.size > 0) {
+              audioChunksRef.current.push(event.data);
+            }
           };
 
           mediaRecorderRef.current.onstop = () => {
-            const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+            const mimeType = mediaRecorderRef.current.mimeType || 'audio/webm';
+            const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
             const audioUrl = URL.createObjectURL(audioBlob);
             setAudioBlob(audioBlob);
             setAudioUrl(audioUrl);
             
             // Stop all tracks to release microphone
             stream.getTracks().forEach(track => track.stop());
+          };
+
+          mediaRecorderRef.current.onerror = (event) => {
+            console.error('MediaRecorder error:', event.error);
+            alert('Recording error: ' + event.error);
+            stream.getTracks().forEach(track => track.stop());
+            setIsRecording(false);
           };
 
           mediaRecorderRef.current.start();
@@ -414,37 +434,43 @@
       const addTodo = async () => {
         if(!text.trim() && !audioBlob) return;
         
-        let audioData = null;
-        if (audioBlob) {
-          // Convert audio blob to base64 for storage
-          const reader = new FileReader();
-          audioData = await new Promise((resolve) => {
-            reader.onloadend = () => resolve(reader.result);
-            reader.readAsDataURL(audioBlob);
-          });
+        try {
+          let audioData = null;
+          if (audioBlob) {
+            // Convert audio blob to base64 for storage
+            audioData = await new Promise((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result);
+              reader.onerror = reject;
+              reader.readAsDataURL(audioBlob);
+            });
+          }
+          
+          const todo = {
+            text: text.trim() || '🎤 Voice Memo',
+            completed: false,
+            userId: user.uid,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            category: category || 'Personal',
+            dueDate: dueDate || null,
+            notes: notes.trim() || null,
+            recurrence: recurrence || 'none',
+            priority: priority || 'medium',
+            audioData: audioData
+          };
+          await firestore.collection('todos').add(todo);
+          setText('');
+          setCategory('Personal');
+          setDueDate('');
+          setNotes('');
+          setRecurrence('none');
+          setPriority('medium');
+          clearRecording();
+          setShowAddTask(false);
+        } catch(err) {
+          console.error('Error adding task:', err);
+          alert('Failed to add task: ' + err.message);
         }
-        
-        const todo = {
-          text: text.trim() || '🎤 Voice Memo',
-          completed: false,
-          userId: user.uid,
-          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-          category: category || 'Personal',
-          dueDate: dueDate || null,
-          notes: notes.trim() || null,
-          recurrence: recurrence || 'none',
-          priority: priority || 'medium',
-          audioData: audioData
-        };
-        await firestore.collection('todos').add(todo);
-        setText('');
-        setCategory('Personal');
-        setDueDate('');
-        setNotes('');
-        setRecurrence('none');
-        setPriority('medium');
-        clearRecording();
-        setShowAddTask(false);
       };
 
       const toggleTodo = async (id, completed, rec) => {
