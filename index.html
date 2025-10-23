@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Get Sh*t Done!</title>
   <meta name="theme-color" content="#14b8a6" />
+  <meta name="description" content="Your productivity companion - Get things done with style" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%2314b8a6'/%3E%3Cpath d='M75 30 L42 63 L25 46' stroke='white' stroke-width='8' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
   <script src="https://cdn.tailwindcss.com"></script>
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -269,7 +271,7 @@
       const [deletedTask, setDeletedTask] = useState(null);
       const [showAddTask, setShowAddTask] = useState(false);
 
-      const defaultCategories = ['Personal', 'Work', 'Shopping', 'Health', 'Other'];
+      const defaultCategories = ['Personal', 'Work', 'Shopping'];
 
       const motivationalQuotes = [
         { quote: "The secret of getting ahead is getting started.", author: "Mark Twain" },
@@ -618,35 +620,40 @@
           ),
 
           React.createElement("div",{className:`mb-8 fade-in`},
-            React.createElement("div",{className:"flex items-center justify-between mb-6"},
-              React.createElement("div",null,
-                React.createElement("h1",{className:`text-3xl sm:text-4xl font-bold mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`},"Get Sh*t Done! 🚀"),
-                React.createElement("p",{className:`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`},user.email)
+            React.createElement("div",{className:"flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6"},
+              React.createElement("div",{className:"flex items-center gap-3"},
+                React.createElement("div",{className:"w-12 h-12 sm:w-14 sm:h-14 rounded-2xl gradient-bg-teal flex items-center justify-center shadow-lg"},
+                  React.createElement(Check,{size:28,className:"text-white"})
+                ),
+                React.createElement("div",null,
+                  React.createElement("h1",{className:`text-3xl sm:text-4xl font-bold mb-1 ${darkMode ? 'text-white' : 'text-gray-900'}`},"Get Sh*t Done! 🚀"),
+                  React.createElement("p",{className:`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`},user.email)
+                )
               ),
-              React.createElement("div",{className:"flex flex-wrap items-center gap-2 sm:gap-3"},
-                React.createElement("button",{onClick:clearCompletedTasks,className:`px-3 sm:px-4 py-2 sm:py-3 rounded-xl text-xs sm:text-sm font-medium transition-all duration-300 hover-lift ${darkMode ? 'bg-orange-900/30 text-orange-400 hover:bg-orange-900/50 border border-orange-700' : 'bg-orange-50 text-orange-600 hover:bg-orange-100 border border-orange-200'} shadow-lg`},"Clear Completed"),
-                React.createElement("button",{onClick:clearAllTasks,className:`px-3 sm:px-4 py-2 sm:py-3 rounded-xl text-xs sm:text-sm font-medium transition-all duration-300 hover-lift ${darkMode ? 'bg-red-900/30 text-red-400 hover:bg-red-900/50 border border-red-700' : 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200'} shadow-lg`},"Clear All"),
-                React.createElement("button",{onClick:()=>setDarkMode(!darkMode),className:`p-2 sm:p-3 rounded-xl transition-all duration-300 hover-lift ${darkMode ? 'bg-gray-800 text-yellow-400 hover:bg-gray-700' : 'bg-white text-gray-700 hover:bg-gray-50 shadow-lg'}`},
+              React.createElement("div",{className:"flex flex-wrap items-center gap-2"},
+                React.createElement("button",{onClick:clearCompletedTasks,className:`px-3 py-2 rounded-xl text-xs font-medium transition-all duration-300 hover-lift ${darkMode ? 'bg-orange-900/30 text-orange-400 hover:bg-orange-900/50 border border-orange-700' : 'bg-orange-50 text-orange-600 hover:bg-orange-100 border border-orange-200'} shadow-lg whitespace-nowrap`},"Clear Completed"),
+                React.createElement("button",{onClick:clearAllTasks,className:`px-3 py-2 rounded-xl text-xs font-medium transition-all duration-300 hover-lift ${darkMode ? 'bg-red-900/30 text-red-400 hover:bg-red-900/50 border border-red-700' : 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200'} shadow-lg whitespace-nowrap`},"Clear All"),
+                React.createElement("button",{onClick:()=>setDarkMode(!darkMode),className:`p-2 rounded-xl transition-all duration-300 hover-lift ${darkMode ? 'bg-gray-800 text-yellow-400 hover:bg-gray-700' : 'bg-white text-gray-700 hover:bg-gray-50 shadow-lg'}`},
                   darkMode ? React.createElement(Sun,{size:20}) : React.createElement(Moon,{size:20})
                 ),
-                React.createElement("button",{onClick:()=>auth.signOut(),className:`px-3 sm:px-4 py-2 sm:py-3 rounded-xl text-xs sm:text-sm font-medium transition-all duration-300 hover-lift ${darkMode ? 'bg-gray-800 text-white hover:bg-gray-700' : 'bg-white text-gray-700 hover:bg-gray-50 shadow-lg'}`},"Sign Out")
+                React.createElement("button",{onClick:()=>auth.signOut(),className:`px-3 py-2 rounded-xl text-xs font-medium transition-all duration-300 hover-lift ${darkMode ? 'bg-gray-800 text-white hover:bg-gray-700' : 'bg-white text-gray-700 hover:bg-gray-50 shadow-lg'} whitespace-nowrap`},"Sign Out")
               )
             ),
 
-            React.createElement("div",{className:`grid grid-cols-3 gap-4 mb-6`},
-              React.createElement("div",{className:`${darkMode ? 'bg-gradient-to-br from-teal-900 to-teal-800 border border-teal-700' : 'bg-gradient-to-br from-teal-500 to-teal-600'} rounded-2xl p-5 text-white shadow-xl hover-lift`},
-                React.createElement("div",{className:"text-3xl font-bold mb-1"},stats.total),
-                React.createElement("div",{className:"text-sm opacity-90"},"Total Tasks")
-              ),
-              React.createElement("div",{className:`${darkMode ? 'bg-gradient-to-br from-emerald-900 to-emerald-800 border border-emerald-700' : 'bg-gradient-to-br from-emerald-500 to-emerald-600'} rounded-2xl p-5 text-white shadow-xl hover-lift`},
-                React.createElement("div",{className:"text-3xl font-bold mb-1"},stats.completed),
-                React.createElement("div",{className:"text-sm opacity-90"},"Completed")
-              ),
-              React.createElement("div",{className:`${darkMode ? 'bg-gradient-to-br from-cyan-900 to-cyan-800 border border-cyan-700' : 'bg-gradient-to-br from-cyan-500 to-cyan-600'} rounded-2xl p-5 text-white shadow-xl hover-lift`},
-                React.createElement("div",{className:"text-3xl font-bold mb-1"},stats.active),
-                React.createElement("div",{className:"text-sm opacity-90"},"Active")
-              )
-            )
+            // React.createElement("div",{className:`grid grid-cols-3 gap-4 mb-6`},
+            //   React.createElement("div",{className:`${darkMode ? 'bg-gradient-to-br from-teal-900 to-teal-800 border border-teal-700' : 'bg-gradient-to-br from-teal-500 to-teal-600'} rounded-2xl p-5 text-white shadow-xl hover-lift`},
+            //     React.createElement("div",{className:"text-3xl font-bold mb-1"},stats.total),
+            //     React.createElement("div",{className:"text-sm opacity-90"},"Total Tasks")
+            //   ),
+            //   React.createElement("div",{className:`${darkMode ? 'bg-gradient-to-br from-emerald-900 to-emerald-800 border border-emerald-700' : 'bg-gradient-to-br from-emerald-500 to-emerald-600'} rounded-2xl p-5 text-white shadow-xl hover-lift`},
+            //     React.createElement("div",{className:"text-3xl font-bold mb-1"},stats.completed),
+            //     React.createElement("div",{className:"text-sm opacity-90"},"Completed")
+            //   ),
+            //   React.createElement("div",{className:`${darkMode ? 'bg-gradient-to-br from-cyan-900 to-cyan-800 border border-cyan-700' : 'bg-gradient-to-br from-cyan-500 to-cyan-600'} rounded-2xl p-5 text-white shadow-xl hover-lift`},
+            //     React.createElement("div",{className:"text-3xl font-bold mb-1"},stats.active),
+            //     React.createElement("div",{className:"text-sm opacity-90"},"Active")
+            //   )
+            // )
           ),
 
           React.createElement("div",{className:`${darkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white'} rounded-3xl shadow-2xl overflow-hidden mb-6 scale-in`},
