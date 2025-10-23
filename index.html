@@ -102,7 +102,7 @@
     const firestore = firebase.firestore();
     firestore.enablePersistence().catch(err => {});
 
-    const { useState, useEffect } = React;
+    const { useState, useEffect, useRef } = React;
 
     function Icon(tagName, props, ...children) {
       return React.createElement(tagName, props, ...children);
@@ -259,6 +259,7 @@
       const [selectedCategory, setSelectedCategory] = useState('all');
       const [editingId, setEditingId] = useState(null);
       const [editText, setEditText] = useState('');
+      const [editNotes, setEditNotes] = useState('');
       const [expandedNotes, setExpandedNotes] = useState({});
       const [showCategoryModal, setShowCategoryModal] = useState(false);
       const [customCategories, setCustomCategories] = useState([]);
@@ -266,6 +267,7 @@
       const [draggedId, setDraggedId] = useState(null);
       const [showToast, setShowToast] = useState(false);
       const [deletedTask, setDeletedTask] = useState(null);
+      const [showAddTask, setShowAddTask] = useState(false);
 
       const defaultCategories = ['Personal', 'Work', 'Shopping'];
 
@@ -353,6 +355,7 @@
         setNotes('');
         setRecurrence('none');
         setPriority('medium');
+        setShowAddTask(false);
       };
 
       const toggleTodo = async (id, completed, rec) => {
@@ -420,9 +423,10 @@
         setDeletedTask(null);
       };
 
-      const startEdit = (id, currentText) => {
+      const startEdit = (id, currentText, currentNotes) => {
         setEditingId(id);
         setEditText(currentText);
+        setEditNotes(currentNotes || '');
       };
 
       const saveEdit = async (id) => {
@@ -432,11 +436,15 @@
             console.error('Cannot edit task that belongs to another user');
             setEditingId(null);
             setEditText('');
+            setEditNotes('');
             return;
           }
           
           try {
-            await firestore.collection('todos').doc(id).update({text: editText.trim()});
+            await firestore.collection('todos').doc(id).update({
+              text: editText.trim(),
+              notes: editNotes.trim() || null
+            });
           } catch(err) {
             console.error('Error updating task:', err);
             alert('Failed to update task: ' + err.message);
@@ -444,6 +452,7 @@
         }
         setEditingId(null);
         setEditText('');
+        setEditNotes('');
       };
 
       const toggleNotes = (id) => {
@@ -640,42 +649,57 @@
             // )
           ),
 
-          React.createElement("div",{className:`${darkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white'} rounded-3xl shadow-2xl p-6 mb-6 scale-in`},
-            React.createElement("div",{className:"space-y-4"},
-              React.createElement("input",{type:"text",value:text,onChange:e=>setText(e.target.value),onKeyDown:e=>{ if(e.key==='Enter' && !e.shiftKey) addTodo(); },placeholder:"What needs to be done?",className:`w-full px-4 py-4 text-lg rounded-xl border-2 transition-all duration-200 focus:outline-none ${darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-teal-500' : 'bg-gray-50 border-gray-200 focus:border-teal-500 focus:bg-white'}`}),
-
-              React.createElement("div",{className:"grid grid-cols-1 md:grid-cols-3 gap-3"},
-                React.createElement("select",{value:category,onChange:e=>setCategory(e.target.value),className:`px-4 py-3 rounded-xl border-2 transition-all duration-200 focus:outline-none ${darkMode ? 'bg-gray-700 border-gray-600 text-white focus:border-teal-500' : 'bg-gray-50 border-gray-200 focus:border-teal-500 focus:bg-white'}`},
-                  allCategories.map(cat => React.createElement("option",{key:cat,value:cat},cat))
+          React.createElement("div",{className:`${darkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white'} rounded-3xl shadow-2xl overflow-hidden mb-6 scale-in`},
+            !showAddTask ?
+              React.createElement("button",{onClick:()=>setShowAddTask(true),className:`w-full p-6 flex items-center justify-center gap-3 transition-all duration-300 ${darkMode ? 'hover:bg-gray-750' : 'hover:bg-gray-50'}`},
+                React.createElement("div",{className:"w-12 h-12 rounded-full gradient-bg-teal flex items-center justify-center shadow-lg"},
+                  React.createElement(Plus,{size:24,className:"text-white"})
                 ),
-                React.createElement("select",{value:priority,onChange:e=>setPriority(e.target.value),className:`px-4 py-3 rounded-xl border-2 transition-all duration-200 focus:outline-none ${darkMode ? 'bg-gray-700 border-gray-600 text-white focus:border-teal-500' : 'bg-gray-50 border-gray-200 focus:border-teal-500 focus:bg-white'}`},
-                  React.createElement("option",{value:"low"},"Low Priority"),
-                  React.createElement("option",{value:"medium"},"Medium Priority"),
-                  React.createElement("option",{value:"high"},"High Priority")
+                React.createElement("span",{className:`text-lg font-semibold ${darkMode ? 'text-gray-300' : 'text-gray-700'}`},"Add New Task")
+              ) :
+              React.createElement("div",{className:"p-6"},
+                React.createElement("div",{className:"flex items-center justify-between mb-4"},
+                  React.createElement("h3",{className:`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`},"Create New Task"),
+                  React.createElement("button",{onClick:()=>setShowAddTask(false),className:`p-2 rounded-xl transition-colors ${darkMode ? 'hover:bg-gray-700 text-gray-400' : 'hover:bg-gray-100 text-gray-600'}`},
+                    React.createElement(X,{size:20})
+                  )
                 ),
-                React.createElement("select",{value:recurrence,onChange:e=>setRecurrence(e.target.value),className:`px-4 py-3 rounded-xl border-2 transition-all duration-200 focus:outline-none ${darkMode ? 'bg-gray-700 border-gray-600 text-white focus:border-teal-500' : 'bg-gray-50 border-gray-200 focus:border-teal-500 focus:bg-white'}`},
-                  React.createElement("option",{value:"none"},"No Repeat"),
-                  React.createElement("option",{value:"daily"},"Daily"),
-                  React.createElement("option",{value:"weekly"},"Weekly"),
-                  React.createElement("option",{value:"monthly"},"Monthly")
-                )
-              ),
+                React.createElement("div",{className:"space-y-4"},
+                  React.createElement("input",{type:"text",value:text,onChange:e=>setText(e.target.value),onKeyDown:e=>{ if(e.key==='Enter' && !e.shiftKey) addTodo(); },placeholder:"What needs to be done?",className:`w-full px-4 py-4 text-lg rounded-xl border-2 transition-all duration-200 focus:outline-none ${darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-teal-500' : 'bg-gray-50 border-gray-200 focus:border-teal-500 focus:bg-white'}`}),
 
-              React.createElement("div",{className:"grid grid-cols-1 md:grid-cols-2 gap-3"},
-                React.createElement("input",{type:"date",value:dueDate,onChange:e=>setDueDate(e.target.value),className:`px-4 py-3 rounded-xl border-2 transition-all duration-200 focus:outline-none ${darkMode ? 'bg-gray-700 border-gray-600 text-white focus:border-teal-500' : 'bg-gray-50 border-gray-200 focus:border-teal-500 focus:bg-white'}`}),
-                React.createElement("textarea",{value:notes,onChange:e=>setNotes(e.target.value),placeholder:"Add notes...",rows:1,className:`px-4 py-3 rounded-xl border-2 transition-all duration-200 focus:outline-none resize-none ${darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-teal-500' : 'bg-gray-50 border-gray-200 focus:border-teal-500 focus:bg-white'}`})
-              ),
+                  React.createElement("div",{className:"grid grid-cols-1 md:grid-cols-3 gap-3"},
+                    React.createElement("select",{value:category,onChange:e=>setCategory(e.target.value),className:`px-4 py-3 rounded-xl border-2 transition-all duration-200 focus:outline-none ${darkMode ? 'bg-gray-700 border-gray-600 text-white focus:border-teal-500' : 'bg-gray-50 border-gray-200 focus:border-teal-500 focus:bg-white'}`},
+                      allCategories.map(cat => React.createElement("option",{key:cat,value:cat},cat))
+                    ),
+                    React.createElement("select",{value:priority,onChange:e=>setPriority(e.target.value),className:`px-4 py-3 rounded-xl border-2 transition-all duration-200 focus:outline-none ${darkMode ? 'bg-gray-700 border-gray-600 text-white focus:border-teal-500' : 'bg-gray-50 border-gray-200 focus:border-teal-500 focus:bg-white'}`},
+                      React.createElement("option",{value:"low"},"Low Priority"),
+                      React.createElement("option",{value:"medium"},"Medium Priority"),
+                      React.createElement("option",{value:"high"},"High Priority")
+                    ),
+                    React.createElement("select",{value:recurrence,onChange:e=>setRecurrence(e.target.value),className:`px-4 py-3 rounded-xl border-2 transition-all duration-200 focus:outline-none ${darkMode ? 'bg-gray-700 border-gray-600 text-white focus:border-teal-500' : 'bg-gray-50 border-gray-200 focus:border-teal-500 focus:bg-white'}`},
+                      React.createElement("option",{value:"none"},"No Repeat"),
+                      React.createElement("option",{value:"daily"},"Daily"),
+                      React.createElement("option",{value:"weekly"},"Weekly"),
+                      React.createElement("option",{value:"monthly"},"Monthly")
+                    )
+                  ),
 
-              React.createElement("div",{className:"flex gap-3"},
-                React.createElement("button",{onClick:addTodo,className:"flex-1 py-4 rounded-xl font-semibold transition-all duration-300 hover-lift gradient-bg-teal text-white shadow-lg hover:shadow-xl flex items-center justify-center gap-2"},
-                  React.createElement(Plus,{size:20}),
-                  "Add Task"
-                ),
-                React.createElement("button",{onClick:()=>setShowCategoryModal(true),className:`px-6 py-4 rounded-xl font-medium transition-all duration-300 hover-lift ${darkMode ? 'bg-gray-700 text-white hover:bg-gray-600' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'} shadow-lg`},
-                  React.createElement(Settings,{size:20})
+                  React.createElement("div",{className:"grid grid-cols-1 md:grid-cols-2 gap-3"},
+                    React.createElement("input",{type:"date",value:dueDate,onChange:e=>setDueDate(e.target.value),className:`px-4 py-3 rounded-xl border-2 transition-all duration-200 focus:outline-none ${darkMode ? 'bg-gray-700 border-gray-600 text-white focus:border-teal-500' : 'bg-gray-50 border-gray-200 focus:border-teal-500 focus:bg-white'}`}),
+                    React.createElement("textarea",{value:notes,onChange:e=>setNotes(e.target.value),placeholder:"Add notes...",rows:1,className:`px-4 py-3 rounded-xl border-2 transition-all duration-200 focus:outline-none resize-none ${darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-teal-500' : 'bg-gray-50 border-gray-200 focus:border-teal-500 focus:bg-white'}`})
+                  ),
+
+                  React.createElement("div",{className:"flex gap-3"},
+                    React.createElement("button",{onClick:addTodo,className:"flex-1 py-4 rounded-xl font-semibold transition-all duration-300 hover-lift gradient-bg-teal text-white shadow-lg hover:shadow-xl flex items-center justify-center gap-2"},
+                      React.createElement(Plus,{size:20}),
+                      "Add Task"
+                    ),
+                    React.createElement("button",{onClick:()=>setShowCategoryModal(true),className:`px-6 py-4 rounded-xl font-medium transition-all duration-300 hover-lift ${darkMode ? 'bg-gray-700 text-white hover:bg-gray-600' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'} shadow-lg`},
+                      React.createElement(Settings,{size:20})
+                    )
+                  )
                 )
               )
-            )
           ),
 
           React.createElement("div",{className:`${darkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white'} rounded-3xl shadow-2xl p-6 mb-6 fade-in`},
@@ -760,10 +784,20 @@
 
                   React.createElement("div",{className:"flex-1 min-w-0"},
                     editingId === todo.id ?
-                      React.createElement("div",{className:"flex gap-2"},
-                        React.createElement("input",{type:"text",value:editText,onChange:e=>setEditText(e.target.value),onKeyDown:e=>{ if(e.key==='Enter') saveEdit(todo.id); if(e.key==='Escape') setEditingId(null); },autoFocus:true,className:`flex-1 px-3 py-2 rounded-xl border-2 transition-all duration-200 focus:outline-none ${darkMode ? 'bg-gray-700 border-gray-600 text-white focus:border-teal-500' : 'bg-gray-50 border-gray-200 focus:border-teal-500'}`}),
-                        React.createElement("button",{onClick:()=>saveEdit(todo.id),className:`px-4 py-2 rounded-xl font-medium transition-all duration-300 gradient-bg-teal text-white hover-lift`},"Save"),
-                        React.createElement("button",{onClick:()=>setEditingId(null),className:`px-4 py-2 rounded-xl font-medium transition-all duration-300 ${darkMode ? 'bg-gray-700 text-white hover:bg-gray-600' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`},"Cancel")
+                      React.createElement("div",{key:todo.id,className:"space-y-3"},
+                        React.createElement("input",{type:"text",value:editText,onChange:e=>setEditText(e.target.value),onKeyDown:e=>{ if(e.key==='Enter') saveEdit(todo.id); if(e.key==='Escape') { setEditingId(null); setEditText(''); setEditNotes(''); } },className:`w-full px-3 py-2 rounded-xl border-2 transition-all duration-200 focus:outline-none ${darkMode ? 'bg-gray-700 border-gray-600 text-white focus:border-teal-500' : 'bg-gray-50 border-gray-200 focus:border-teal-500'}`}),
+                        React.createElement("textarea",{
+                          key:`notes-${todo.id}`,
+                          defaultValue:editNotes,
+                          onChange:e=>setEditNotes(e.target.value),
+                          placeholder:"Edit notes...",
+                          rows:3,
+                          className:`w-full px-3 py-2 rounded-xl border-2 transition-all duration-200 focus:outline-none resize-none ${darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-teal-500' : 'bg-gray-50 border-gray-200 placeholder-gray-400 focus:border-teal-500'}`
+                        }),
+                        React.createElement("div",{className:"flex gap-2"},
+                          React.createElement("button",{onClick:()=>saveEdit(todo.id),className:`px-4 py-2 rounded-xl font-medium transition-all duration-300 gradient-bg-teal text-white hover-lift`},"Save"),
+                          React.createElement("button",{onClick:()=>{ setEditingId(null); setEditText(''); setEditNotes(''); },className:`px-4 py-2 rounded-xl font-medium transition-all duration-300 ${darkMode ? 'bg-gray-700 text-white hover:bg-gray-600' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`},"Cancel")
+                        )
                       ) :
                       React.createElement("div",null,
                         React.createElement("div",{className:`text-lg mb-2 ${todo.completed ? 'line-through opacity-60' : ''} ${darkMode ? 'text-white' : 'text-gray-900'}`},todo.text),
@@ -801,7 +835,7 @@
                   ),
 
                   React.createElement("div",{className:"flex items-center gap-2 flex-shrink-0"},
-                    React.createElement("button",{onClick:()=>startEdit(todo.id, todo.text),className:`p-2 rounded-lg transition-all duration-200 ${darkMode ? 'text-teal-400 hover:bg-gray-700' : 'text-teal-600 hover:bg-teal-50'}`},
+                    React.createElement("button",{onClick:()=>startEdit(todo.id, todo.text, todo.notes),className:`p-2 rounded-lg transition-all duration-200 ${darkMode ? 'text-teal-400 hover:bg-gray-700' : 'text-teal-600 hover:bg-teal-50'}`},
                       React.createElement(Edit2,{size:18})
                     ),
                     React.createElement("button",{onClick:()=>deleteTodo(todo.id),className:`p-2 rounded-lg transition-all duration-200 ${darkMode ? 'text-red-400 hover:bg-gray-700' : 'text-red-600 hover:bg-red-50'}`},
