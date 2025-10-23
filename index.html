@@ -84,6 +84,12 @@
       background: rgba(0, 0, 0, 0.3);
       border: 1px solid rgba(255, 255, 255, 0.1);
     }
+
+    /* Help modal specific */
+    .help-backdrop {
+      backdrop-filter: blur(6px);
+      background: rgba(0,0,0,0.35);
+    }
   </style>
 </head>
 <body>
@@ -270,6 +276,9 @@
       const [showToast, setShowToast] = useState(false);
       const [deletedTask, setDeletedTask] = useState(null);
       const [showAddTask, setShowAddTask] = useState(false);
+
+      // NEW: help modal state
+      const [showHelpModal, setShowHelpModal] = useState(false);
 
       const defaultCategories = ['Personal', 'Work', 'Shopping'];
 
@@ -626,7 +635,7 @@
                   React.createElement(Check,{size:28,className:"text-white"})
                 ),
                 React.createElement("div",null,
-                  React.createElement("h1",{className:`text-3xl sm:text-4xl font-bold mb-1 ${darkMode ? 'text-white' : 'text-gray-900'}`},"Get Sh*t Done! 🚀"),
+                  React.createElement("h1",{className:`text-3xl sm:text-4xl font-bold mb-1 ${darkMode ? 'text-white' : 'text-gray-900'}`},"Get Sh*t Done!"),
                   React.createElement("p",{className:`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`},user.email)
                 )
               ),
@@ -636,6 +645,10 @@
                 React.createElement("button",{onClick:()=>setDarkMode(!darkMode),className:`p-2 rounded-xl transition-all duration-300 hover-lift ${darkMode ? 'bg-gray-800 text-yellow-400 hover:bg-gray-700' : 'bg-white text-gray-700 hover:bg-gray-50 shadow-lg'}`},
                   darkMode ? React.createElement(Sun,{size:20}) : React.createElement(Moon,{size:20})
                 ),
+
+                // NEW: Help Button (same row as Sign Out / Dark Mode)
+                React.createElement("button",{onClick:()=>setShowHelpModal(true),className:`px-3 py-2 rounded-xl text-xs font-medium transition-all duration-300 hover-lift ${darkMode ? 'bg-blue-900/30 text-blue-400 hover:bg-blue-900/50 border border-blue-700' : 'bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200'} shadow-lg whitespace-nowrap`},"Help"),
+
                 React.createElement("button",{onClick:()=>auth.signOut(),className:`px-3 py-2 rounded-xl text-xs font-medium transition-all duration-300 hover-lift ${darkMode ? 'bg-gray-800 text-white hover:bg-gray-700' : 'bg-white text-gray-700 hover:bg-gray-50 shadow-lg'} whitespace-nowrap`},"Sign Out")
               )
             ),
@@ -915,9 +928,45 @@
               ),
               React.createElement("button",{onClick:undoDelete,className:"px-5 py-2 gradient-bg-teal text-white rounded-xl font-medium transition-all hover-lift"},"Undo")
             )
+          ),
+
+          // HELP MODAL: renders above the app when showHelpModal is true
+          showHelpModal && React.createElement("div",{className:"fixed inset-0 z-60 flex items-center justify-center help-backdrop", onClick:()=>setShowHelpModal(false)},
+            React.createElement("div",{className:`max-w-3xl w-full mx-4 ${darkMode ? 'text-gray-100' : 'text-gray-900'}`, onClick:e=>e.stopPropagation()},
+              React.createElement("div",{className:`${darkMode ? 'bg-gray-900 border border-gray-700' : 'bg-white'} rounded-3xl shadow-2xl p-6 scale-in`},
+                React.createElement("div",{className:"flex items-start justify-between gap-4"},
+                  React.createElement("div",null,
+                    React.createElement("h2",{className:`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`},"Quick guide to getting sh*t done!"),
+                    //React.createElement("p", { className: `mt-1 text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}` }, "Quick guide to using Get Sh*t Done!")
+                    )
+                  ),
+                  // React.createElement("button",{onClick:()=>setShowHelpModal(false),className:`p-2 rounded-xl transition-colors ${darkMode ? 'hover:bg-gray-800 text-gray-400' : 'hover:bg-gray-100 text-gray-600'}`},
+                  //   React.createElement(X,{size:20})
+                  // )
+                ),
+
+                React.createElement("div",{className:"mt-6 space-y-4"},
+                  React.createElement("p",{className:`${darkMode ? 'text-gray-300' : 'text-gray-700'}`},"Here are a few quick tips to get the most out of the app:"),
+                  React.createElement("ul",{className:`list-inside list-disc space-y-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`},
+                    React.createElement("li",null,"Add tasks using the “Add New Task” button — set category, priority, recurrence and due date."),
+                    React.createElement("li",null,"Toggle completion by clicking the checkbox on a task card. For recurring tasks, a new task will be scheduled when you complete it."),
+                    React.createElement("li",null,"Edit or delete tasks with the pencil and trash icons on each card."),
+                    React.createElement("li",null,"Use the search, category filter, and sort options to find and organize tasks quickly."),
+                    React.createElement("li",null,"Manage custom categories via the settings (gear) button in the Create Task area."),
+                    React.createElement("li",null,"Use Clear Completed or Clear All to bulk remove tasks — these actions are permanent."),
+                    React.createElement("li",null,"Toggle dark mode with the sun/moon button icon."),
+                    React.createElement("li",null,"This is primarily a web app. On iPhone (for example), you can open the site on your browser (Safari for example), and choose 'Add to Home Screen'. This will save an icon to your home screen, essentially functioning like an actual app."),
+                    React.createElement("li",null,"Addtionally, on a desktop browser (Firefox for example), there is an option in the URL bar to 'Add tab to taskbar'. This will save the page to your taskbar at the bottom of your desktop screen for easy access.")
+                  ),
+                  React.createElement("div",{className:"mt-6 flex justify-end"},
+                    React.createElement("button",{onClick:()=>setShowHelpModal(false),className:`px-5 py-2 rounded-xl font-semibold ${darkMode ? 'bg-gray-800 text-white hover:bg-gray-700' : 'bg-teal-500 text-white hover:bg-teal-600'}`}, "Close Help")
+                  )
+                )
+              )
+            )
           )
         )
-      );
+      ;
     }
 
     const root = ReactDOM.createRoot(document.getElementById('root'));
