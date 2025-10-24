@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>TokaTask</title>
+  <title>Get Sh*t Done!</title>
   <meta name="theme-color" content="#14b8a6" />
   <meta name="description" content="Your productivity companion - Get things done with style" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%2314b8a6'/%3E%3Cpath d='M75 30 L42 63 L25 46' stroke='white' stroke-width='8' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
@@ -222,7 +222,7 @@
               React.createElement("div",{className:`w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center gradient-bg-teal shadow-lg`},
                 React.createElement(Check,{size:32,className:"text-white"})
               ),
-              React.createElement("h1",{className:`text-3xl font-bold mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`},"TokaTask"),
+              React.createElement("h1",{className:`text-3xl font-bold mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`},"Get Sh*t Done!"),
               React.createElement("p",{className:`${darkMode ? 'text-gray-400' : 'text-gray-600'}`},"Your productivity companion")
             ),
 
@@ -287,6 +287,7 @@
       const [customCategories, setCustomCategories] = useState([]);
       const [newCategory, setNewCategory] = useState('');
       const [draggedId, setDraggedId] = useState(null);
+      const [dragOverId, setDragOverId] = useState(null);
       const [showToast, setShowToast] = useState(false);
       const [deletedTask, setDeletedTask] = useState(null);
       const [showAddTask, setShowAddTask] = useState(false);
@@ -347,6 +348,67 @@
       };
 
       const dailyQuote = getDailyQuote();
+
+      // NEW: Drag and drop handlers
+      const handleDragStart = (e, id) => {
+        setDraggedId(id);
+        e.dataTransfer.effectAllowed = 'move';
+      };
+
+      const handleDragOver = (e, id) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        if (id !== draggedId) {
+          setDragOverId(id);
+        }
+      };
+
+      const handleDragLeave = () => {
+        setDragOverId(null);
+      };
+
+      const handleDrop = async (e, dropTargetId) => {
+        e.preventDefault();
+        setDragOverId(null);
+        
+        if (!draggedId || draggedId === dropTargetId) {
+          setDraggedId(null);
+          return;
+        }
+
+        // Find the dragged and target items
+        const draggedIndex = sortedTodos.findIndex(t => t.id === draggedId);
+        const targetIndex = sortedTodos.findIndex(t => t.id === dropTargetId);
+
+        if (draggedIndex === -1 || targetIndex === -1) {
+          setDraggedId(null);
+          return;
+        }
+
+        // Reorder the array
+        const newTodos = [...sortedTodos];
+        const [draggedItem] = newTodos.splice(draggedIndex, 1);
+        newTodos.splice(targetIndex, 0, draggedItem);
+
+        // Update order field in Firestore for each affected item
+        try {
+          const batch = firestore.batch();
+          newTodos.forEach((todo, index) => {
+            const docRef = firestore.collection('todos').doc(todo.id);
+            batch.update(docRef, { order: index });
+          });
+          await batch.commit();
+        } catch(err) {
+          console.error('Error updating order:', err);
+        }
+
+        setDraggedId(null);
+      };
+
+      const handleDragEnd = () => {
+        setDraggedId(null);
+        setDragOverId(null);
+      };
 
       // NEW: Voice recording functions
       const startRecording = async () => {
@@ -446,6 +508,9 @@
             });
           }
           
+          // Get the highest order value and add 1
+          const maxOrder = todos.length > 0 ? Math.max(...todos.map(t => t.order || 0)) : -1;
+          
           const todo = {
             text: text.trim() || '🎤 Voice Memo',
             completed: false,
@@ -456,7 +521,8 @@
             notes: notes.trim() || null,
             recurrence: recurrence || 'none',
             priority: priority || 'medium',
-            audioData: audioData
+            audioData: audioData,
+            order: maxOrder + 1
           };
           await firestore.collection('todos').add(todo);
           setText('');
@@ -674,6 +740,10 @@
 
       const sortedTodos = [...filteredTodos].sort((a,b) => {
         if(sortBy === 'createdAt') {
+          // When sorting by created date, use order field if available for manual sorting
+          if (a.order !== undefined && b.order !== undefined) {
+            return a.order - b.order;
+          }
           const aTime = a.createdAt?.seconds || 0;
           const bTime = b.createdAt?.seconds || 0;
           return bTime - aTime;
@@ -705,7 +775,7 @@
                   React.createElement(Check,{size:28,className:"text-white"})
                 ),
                 React.createElement("div",null,
-                  React.createElement("h1",{className:`text-4xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`},"TokaTask"),
+                  React.createElement("h1",{className:`text-4xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`},"Get Sh*t Done!"),
                   React.createElement("p",{className:`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}, `${activeTasks} active · ${completedTasks} completed`)
                 )
               ),
@@ -881,8 +951,21 @@
                   const dueToday = todoDate && todoDate.toDateString() === today.toDateString();
                   const dueTomorrow = todoDate && todoDate.toDateString() === tomorrow.toDateString();
 
-                  return React.createElement("div",{key:todo.id,className:`${darkMode ? 'bg-gray-700/50 border border-gray-600 hover:bg-gray-700' : 'bg-gray-50 border border-gray-200 hover:bg-white'} rounded-2xl p-5 transition-all duration-200 task-item`},
+                  return React.createElement("div",{
+                    key:todo.id,
+                    draggable:true,
+                    onDragStart:(e)=>handleDragStart(e, todo.id),
+                    onDragOver:(e)=>handleDragOver(e, todo.id),
+                    onDragLeave:handleDragLeave,
+                    onDrop:(e)=>handleDrop(e, todo.id),
+                    onDragEnd:handleDragEnd,
+                    className:`${darkMode ? 'bg-gray-700/50 border border-gray-600 hover:bg-gray-700' : 'bg-gray-50 border border-gray-200 hover:bg-white'} rounded-2xl p-5 transition-all duration-200 task-item cursor-move ${draggedId === todo.id ? 'opacity-50 scale-95' : ''} ${dragOverId === todo.id ? 'border-teal-500 border-2 transform scale-102' : ''}`
+                  },
                     React.createElement("div",{className:"flex gap-4 items-start"},
+
+                      React.createElement("div",{className:`flex-shrink-0 ${darkMode ? 'text-gray-500' : 'text-gray-400'} cursor-grab active:cursor-grabbing pt-1`},
+                        React.createElement(GripVertical,{size:20})
+                      ),
 
                       React.createElement("button",{onClick:()=>toggleTodo(todo.id, todo.completed, todo.recurrence),className:`flex-shrink-0 w-6 h-6 rounded-lg border-2 transition-all duration-200 checkbox-bounce ${todo.completed ? darkMode ? 'bg-teal-600 border-teal-600' : 'bg-teal-500 border-teal-500' : darkMode ? 'border-gray-600 hover:border-teal-500' : 'border-gray-300 hover:border-teal-400'} flex items-center justify-center`},
                         todo.completed && React.createElement(Check,{size:16,className:"text-white"})
@@ -1074,18 +1157,18 @@
             React.createElement("div",{className:`max-w-3xl w-full max-h-[90vh] overflow-y-auto ${darkMode ? 'text-gray-100' : 'text-gray-900'}`, onClick:e=>e.stopPropagation()},
               React.createElement("div",{className:`${darkMode ? 'bg-gray-900 border border-gray-700' : 'bg-white'} rounded-3xl shadow-2xl p-6 md:p-8 scale-in`},
                 React.createElement("div",{className:"flex items-start justify-between gap-4 mb-4"},
-                  React.createElement("h2",{className:`text-xl md:text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`},"Quick guide to getting stuff done!"),
+                  React.createElement("h2",{className:`text-xl md:text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`},"Quick guide to getting sh*t done!"),
                   React.createElement("button",{onClick:()=>setShowHelpModal(false),className:`p-2 rounded-xl transition-colors flex-shrink-0 ${darkMode ? 'hover:bg-gray-800 text-gray-400 hover:text-white' : 'hover:bg-gray-100 text-gray-600 hover:text-gray-900'}`},
                     React.createElement(X,{size:24})
                   )
                 ),
 
                 React.createElement("div",{className:"space-y-4"},
-                  React.createElement("p",{className:`${darkMode ? 'text-gray-300' : 'text-gray-700'} text-sm md:text-base`},"Here are a few quick tips to get the most out of TokaTask!"),
+                  React.createElement("p",{className:`${darkMode ? 'text-gray-300' : 'text-gray-700'} text-sm md:text-base`},"Here are a few quick tips to get the most out of the app:"),
                   React.createElement("ul",{className:`list-inside list-disc space-y-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'} text-sm md:text-base`},
-                    React.createElement("li",null,"First thing's first! 'Toka' (とか) in Japanese means 'and, etc.', used to list things in a non-exhaustive way."),
                     React.createElement("li",null,"Add tasks using the Add New Task button - set category, priority, recurrence and due date."),
                     React.createElement("li",null,"Record voice memos for tasks - perfect for quick thoughts or detailed instructions."),
+                    React.createElement("li",null,"Drag and drop tasks to reorder them - grab the handle icon on the left side of each task."),
                     React.createElement("li",null,"Toggle completion by clicking the checkbox on a task card. For recurring tasks, a new task will be scheduled when you complete it."),
                     React.createElement("li",null,"Edit tasks including their category, due date, priority, and recurrence using the pencil icon on each card."),
                     React.createElement("li",null,"Delete tasks with the trash icon on each card."),
@@ -1093,7 +1176,7 @@
                     React.createElement("li",null,"Manage custom categories via the settings (gear) button in the Create Task area."),
                     React.createElement("li",null,"Use Clear Completed or Clear All to bulk remove tasks - these actions are permanent."),
                     React.createElement("li",null,"Toggle dark mode with the sun/moon button icon."),
-                    React.createElement("li",null,"TokaTask is primarily a web app. On iPhone (for example), you can open the site on your browser (Safari for example), and choose Add to Home Screen. This will save an icon to your home screen, essentially functioning like an actual app."),
+                    React.createElement("li",null,"This is primarily a web app. On iPhone (for example), you can open the site on your browser (Safari for example), and choose Add to Home Screen. This will save an icon to your home screen, essentially functioning like an actual app."),
                     React.createElement("li",null,"Additionally, on a desktop browser (Firefox for example), there is an option in the URL bar to Add tab to taskbar. This will save the page to your taskbar at the bottom of your desktop screen for easy access.")
                   ),
                   React.createElement("div",{className:"mt-6 flex justify-end gap-2"},
