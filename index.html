@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Get Sh*t Done!</title>
+  <title>TokaTask</title>
   <meta name="theme-color" content="#14b8a6" />
   <meta name="description" content="Your productivity companion - Get things done with style" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%2314b8a6'/%3E%3Cpath d='M75 30 L42 63 L25 46' stroke='white' stroke-width='8' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
@@ -222,7 +222,7 @@
               React.createElement("div",{className:`w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center gradient-bg-teal shadow-lg`},
                 React.createElement(Check,{size:32,className:"text-white"})
               ),
-              React.createElement("h1",{className:`text-3xl font-bold mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`},"Get Sh*t Done!"),
+              React.createElement("h1",{className:`text-3xl font-bold mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`},"TokaTask"),
               React.createElement("p",{className:`${darkMode ? 'text-gray-400' : 'text-gray-600'}`},"Your productivity companion")
             ),
 
@@ -775,8 +775,8 @@
                   React.createElement(Check,{size:28,className:"text-white"})
                 ),
                 React.createElement("div",null,
-                  React.createElement("h1",{className:`text-4xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`},"Get Sh*t Done!"),
-                  React.createElement("p",{className:`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}, `${activeTasks} active · ${completedTasks} completed`)
+                  React.createElement("h1",{className:`text-4xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`},"TokaTask"),
+                  // React.createElement("p",{className:`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}, `${activeTasks} active · ${completedTasks} completed`)
                 )
               ),
               React.createElement("div",{className:"flex items-center gap-2"},
@@ -805,7 +805,7 @@
 
           React.createElement("div",{className:`${darkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white'} rounded-3xl shadow-2xl p-6 md:p-8 mb-6 scale-in`},
             React.createElement("div",{className:"flex items-center justify-between mb-6"},
-              React.createElement("h2",{className:`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`},"Create New Task"),
+              // React.createElement("h2",{className:`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`},"New Task"),
               React.createElement("button",{onClick:()=>setShowCategoryModal(true),className:`p-2 rounded-xl transition-all duration-200 ${darkMode ? 'text-gray-400 hover:bg-gray-700 hover:text-teal-400' : 'text-gray-600 hover:bg-gray-100 hover:text-teal-600'}`},
                 React.createElement(Settings,{size:20})
               )
@@ -814,7 +814,7 @@
             !showAddTask ? 
               React.createElement("button",{onClick:()=>setShowAddTask(true),className:`w-full py-4 rounded-xl font-medium transition-all duration-300 hover-lift flex items-center justify-center gap-2 ${darkMode ? 'bg-gray-700 border-2 border-gray-600 text-white hover:bg-gray-650' : 'bg-gray-50 border-2 border-gray-200 text-gray-700 hover:bg-gray-100'}`},
                 React.createElement(Plus,{size:20}),
-                "Add New Task"
+                "Create Task"
               ) :
               React.createElement("div",{className:"space-y-4"},
                 React.createElement("input",{type:"text",value:text,onChange:e=>setText(e.target.value),onKeyDown:e=>{ if(e.key==='Enter') addTodo(); },placeholder:"What needs to be done?",className:`w-full px-4 py-3 rounded-xl border-2 transition-all duration-200 focus:outline-none ${darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-teal-500' : 'bg-gray-50 border-gray-200 placeholder-gray-400 focus:border-teal-500 focus:bg-white'}`}),
@@ -932,7 +932,7 @@
               )
             ),
 
-            sortedTodos.length === 0 ?
+            sortedTodos.filter(t => filter === 'completed' ? t.completed : !t.completed).length === 0 ?
               React.createElement("div",{className:"text-center py-16"},
                 React.createElement("div",{className:`text-6xl mb-4`},"📝"),
                 React.createElement("p",{className:`text-xl font-medium ${darkMode ? 'text-gray-400' : 'text-gray-500'}`},
@@ -940,7 +940,7 @@
                 )
               ) :
               React.createElement("div",{className:"space-y-3"},
-                sortedTodos.map(todo => {
+                sortedTodos.filter(t => filter === 'completed' ? t.completed : !t.completed).map(todo => {
                   const todoDate = todo.dueDate ? (todo.dueDate.seconds ? new Date(todo.dueDate.seconds * 1000) : new Date(todo.dueDate)) : null;
                   const today = new Date();
                   today.setHours(0,0,0,0);
@@ -1157,15 +1157,16 @@
             React.createElement("div",{className:`max-w-3xl w-full max-h-[90vh] overflow-y-auto ${darkMode ? 'text-gray-100' : 'text-gray-900'}`, onClick:e=>e.stopPropagation()},
               React.createElement("div",{className:`${darkMode ? 'bg-gray-900 border border-gray-700' : 'bg-white'} rounded-3xl shadow-2xl p-6 md:p-8 scale-in`},
                 React.createElement("div",{className:"flex items-start justify-between gap-4 mb-4"},
-                  React.createElement("h2",{className:`text-xl md:text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`},"Quick guide to getting sh*t done!"),
+                  React.createElement("h2",{className:`text-xl md:text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`},"Quick guide to getting stuff done!"),
                   React.createElement("button",{onClick:()=>setShowHelpModal(false),className:`p-2 rounded-xl transition-colors flex-shrink-0 ${darkMode ? 'hover:bg-gray-800 text-gray-400 hover:text-white' : 'hover:bg-gray-100 text-gray-600 hover:text-gray-900'}`},
                     React.createElement(X,{size:24})
                   )
                 ),
 
                 React.createElement("div",{className:"space-y-4"},
-                  React.createElement("p",{className:`${darkMode ? 'text-gray-300' : 'text-gray-700'} text-sm md:text-base`},"Here are a few quick tips to get the most out of the app:"),
+                  React.createElement("p",{className:`${darkMode ? 'text-gray-300' : 'text-gray-700'} text-sm md:text-base`},"Here are a few quick tips to get the most out of TokaTask!"),
                   React.createElement("ul",{className:`list-inside list-disc space-y-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'} text-sm md:text-base`},
+                    React.createElement("li",null,"First thing's first! 'Toka' (とか) in Japanese means 'and, etc.'', used to list things in a non-exhaustive way."),
                     React.createElement("li",null,"Add tasks using the Add New Task button - set category, priority, recurrence and due date."),
                     React.createElement("li",null,"Record voice memos for tasks - perfect for quick thoughts or detailed instructions."),
                     React.createElement("li",null,"Drag and drop tasks to reorder them - grab the handle icon on the left side of each task."),
@@ -1176,7 +1177,7 @@
                     React.createElement("li",null,"Manage custom categories via the settings (gear) button in the Create Task area."),
                     React.createElement("li",null,"Use Clear Completed or Clear All to bulk remove tasks - these actions are permanent."),
                     React.createElement("li",null,"Toggle dark mode with the sun/moon button icon."),
-                    React.createElement("li",null,"This is primarily a web app. On iPhone (for example), you can open the site on your browser (Safari for example), and choose Add to Home Screen. This will save an icon to your home screen, essentially functioning like an actual app."),
+                    React.createElement("li",null,"TokaTask is a web app. On iPhone (for example), you can open the site on your browser (Safari for example), and choose Add to Home Screen. This will save an icon to your home screen, essentially functioning like an actual app."),
                     React.createElement("li",null,"Additionally, on a desktop browser (Firefox for example), there is an option in the URL bar to Add tab to taskbar. This will save the page to your taskbar at the bottom of your desktop screen for easy access.")
                   ),
                   React.createElement("div",{className:"mt-6 flex justify-end gap-2"},
